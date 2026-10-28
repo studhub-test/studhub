@@ -48,7 +48,13 @@ const user = getCurrentUser();
 user.name = document.getElementById('editProfileName').value.trim() || user.name;
 user.subtitle = document.getElementById('editProfileSubtitle').value.trim();
 user.bio = document.getElementById('editProfileBio').value.trim();
-user.username = document.getElementById('editProfileUsername').value.trim().replace(/^@/, '');
+const newUsername = document.getElementById('editProfileUsername').value.trim().replace(/^@/, '').toLowerCase();
+if (!/^[a-z0-9_.]{3,20}$/.test(newUsername)) { showToast('Юзернейм: 3–20 символов, только латиница, цифры, точка и подчёркивание', 'error'); return; }
+if (typeof BACKEND !== 'undefined' && BACKEND) {
+  const usernameResult = await backendUpdateUsername(newUsername);
+  if (usernameResult.error) { showToast(usernameResult.error === 'auth.err.usernameTaken' ? 'Этот юзернейм уже занят' : 'Не удалось сохранить юзернейм', 'error'); return; }
+}
+user.username = newUsername;
 user.city = document.getElementById('editProfileCity').value.trim();
 user.campus = document.getElementById('editProfileCampus').value;
 user.interests = document.getElementById('editProfileInterests').value.trim();

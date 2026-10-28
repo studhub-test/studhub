@@ -25,6 +25,8 @@ const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toStri
 /* ---------- Проверки ---------- */
 const emailOk = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) && e.length <= 100;
 const passwordOk = p => p.length >= 8 && p.length <= 100 && /[A-Za-zА-Яа-яЁё]/.test(p) && /\d/.test(p);
+const usernameOk = u => /^[a-z0-9_.]{3,20}$/.test(u);
+function normalizeUsername(value) { return String(value || '').trim().replace(/^@/, '').toLowerCase(); }
 function passwordStrength(p) {
   let sc = 0;
   if (p.length >= 8) sc++; if (p.length >= 12) sc++;
@@ -66,7 +68,9 @@ function migrateLegacyData(id) {
   legacyKeys().forEach(k => { localStorage.setItem('u_' + id + '_' + k, localStorage.getItem(k)); localStorage.removeItem(k); });
 }
 
-async function registerAccount({ name, email, password, password2, agree }) {
+async function registerAccount({ name, username, email, password, password2, agree }) {
+  username = normalizeUsername(username);
+  if (!usernameOk(username)) return { error: 'auth.err.username' };
   if (BACKEND) { // те же проверки, регистрация — в Supabase
     name = name.trim().replace(/\s+/g, ' '); email = email.trim().toLowerCase();
     if (name.length < 2 || name.length > 40) return { error: 'auth.err.name' };
@@ -74,7 +78,7 @@ async function registerAccount({ name, email, password, password2, agree }) {
     if (!passwordOk(password)) return { error: 'auth.err.pass' };
     if (password !== password2) return { error: 'auth.err.mismatch' };
     if (!agree) return { error: 'auth.err.agree' };
-    return backendRegister({ name, email, password });
+    return backendRegister({ name, username, email, password });
   }
   name = name.trim().replace(/\s+/g, ' '); email = email.trim().toLowerCase();
   if (name.length < 2 || name.length > 40) return { error: 'auth.err.name' };
@@ -91,8 +95,8 @@ async function registerAccount({ name, email, password, password2, agree }) {
   const legacyProfile = first ? (() => { try { return JSON.parse(localStorage.getItem('currentUser')); } catch (e) { return null; } })() : null;
   if (first) migrateLegacyData(acc.id);
   // профиль нового пользователя (в старом профиле из демо-версии меняем только имя)
-  const profile = legacyProfile ? { ...legacyProfile, name } : {
-    name, username: email.split('@')[0].replace(/[^\w.]/g, '').slice(0, 20), campus: 'kitis',
+  const profile = legacyProfile ? { ...legacyProfile, name, username } : {
+    name, username, campus: 'kitis',
     subtitle: 'Студент · Калининград', bio: '', city: 'Калининград', interests: '',
   };
   localStorage.setItem('u_' + acc.id + '_currentUser', JSON.stringify(profile));
@@ -168,7 +172,7 @@ async function submitAuth(e) {
   e.preventDefault();
   const btn = $('authSubmit'); btn.disabled = true; authError('');
   try {
-    const data = { name: $('authName').value, email: $('authEmail').value, password: $('authPassword').value, password2: $('authPassword2').value, agree: $('authAgree').checked };
+    const data = { name: $('authName').value, username: $('authUsername').value, email: $('authEmail').value, password: $('authPassword').value, password2: $('authPassword2').value, agree: $('authAgree').checked };
     const res = authMode === 'login' ? await loginAccount(data) : await registerAccount(data);
     if (res.error) { authError(res.error, res.wait); return; }
     startSession(res.id, authMode === 'register' ? true : $('authRemember').checked);

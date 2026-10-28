@@ -29,11 +29,12 @@ async function ok(promise) { const { data, error } = await promise; if (error) t
 /* ---------- Локальные копии учётки (чтобы остальной код работал синхронно) ---------- */
 function setLocalSession(user) {
   const name = (user.user_metadata && user.user_metadata.name) || user.email.split('@')[0];
+  const username = (user.user_metadata && user.user_metadata.username) || (getCurrentUser().username) || user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g, '').slice(0, 20) || 'student';
   try { sessionStorage.removeItem('studhub_session'); } catch (e) {}
   localStorage.setItem('studhub_session', user.id);
   localStorage.setItem('studhub_accounts', JSON.stringify([{ id: user.id, email: user.email, name, createdAt: Date.parse(user.created_at) || Date.now() }]));
   if (!userStore.getItem('currentUser')) {
-    saveCurrentUser({ name, username: user.email.split('@')[0].replace(/[^\w.]/g, '').slice(0, 20), campus: 'kitis', subtitle: 'Студент · Калининград', bio: '', city: 'Калининград', interests: '' });
+    saveCurrentUser({ name, username, campus: 'kitis', subtitle: 'Студент · Калининград', bio: '', city: 'Калининград', interests: '' });
   }
 }
 function clearLocalSession() {
@@ -109,7 +110,7 @@ async function backendInit() {
   const c = STUDHUB_CONFIG;
   sb = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey, { auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   const { data } = await sb.auth.getSession();
-  if (data.session) { setLocalSession(data.session.user); await loadAll(); } else clearLocalSession();
+  if (data.session) { setLocalSession(data.session.user); await syncProfileFromDatabase(data.session.user); await loadAll(); } else clearLocalSession();
   sb.auth.onAuthStateChange((ev, s) => {
     if (ev === 'PASSWORD_RECOVERY') setTimeout(recoverPassword, 400);
     if (ev === 'SIGNED_OUT' && activeUserId()) { clearLocalSession(); location.reload(); }
@@ -117,17 +118,43 @@ async function backendInit() {
   setInterval(refreshLive, 30000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshLive(); });
 }
-async function backendRegister({ name, email, password }) {
-  const { data, error } = await need().auth.signUp({ email, password, options: { data: { name } } });
-  if (error) return { error: /registered|exists/i.test(error.message) ? 'auth.err.exists' : /rate|limit/i.test(error.message) ? 'auth.err.rate' : 'auth.err.bad' };
+async function syncProfileFromDatabase(user) {
+  try {
+    const profile = await ok(need().from('profiles').select('name, username').eq('id', user.id).single());
+    const current = getCurrentUser();
+    saveCurrentUser({ ...current, name: profile.name || current.name, username: profile.username || current.username });
+  } catch (e) { console.warn('Не удалось загрузить профиль из Supabase', e); }
+}
+async function backendUpdateUsername(username) {
+  const normalized = String(username || '').trim().replace(/^@/, '').toLowerCase();
+  if (!/^[a-z0-9_.]{3,20}$/.test(normalized)) return { error: 'auth.err.username' };
+  try {
+    const { error } = await need().from('profiles').update({ username: normalized }).eq('id', activeUserId());
+    if (error) {
+      if (error.code === '23505' || /duplicate|unique/i.test(error.message || '')) return { error: 'auth.err.usernameTaken' };
+      return { error: 'auth.err.bad' };
+    }
+    const { error: metaError } = await need().auth.updateUser({ data: { username: normalized } });
+    if (metaError) console.warn('Не удалось синхронизировать username в метаданных', metaError);
+    return { ok: true, username: normalized };
+  } catch (e) { return { error: 'auth.err.bad' }; }
+}
+async function backendRegister({ name, username, email, password }) {
+  const { data, error } = await need().auth.signUp({ email, password, options: { data: { name, username } } });
+  if (error) {
+    if (/username|profiles_username/i.test(error.message || '')) return { error: 'auth.err.usernameTaken' };
+    return { error: /registered|exists/i.test(error.message) ? 'auth.err.exists' : /rate|limit/i.test(error.message) ? 'auth.err.rate' : 'auth.err.bad' };
+  }
   if (!data.session) return { error: 'auth.err.confirm' };   // в Supabase включено подтверждение почты
   setLocalSession(data.user);
+  await syncProfileFromDatabase(data.user);
   return { ok: true, id: data.user.id };
 }
 async function backendLogin({ email, password }) {
   const { data, error } = await need().auth.signInWithPassword({ email, password });
   if (error) return { error: /confirm/i.test(error.message) ? 'auth.err.confirm2' : 'auth.err.bad' };
   setLocalSession(data.user);
+  await syncProfileFromDatabase(data.user);
   return { ok: true, id: data.user.id };
 }
 async function backendLogout() {
