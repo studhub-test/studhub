@@ -10,7 +10,7 @@ function closeModal(id){document.getElementById(id).classList.remove('show')}
 
 const interactionCache={votes:{},comments:{},loading:{},counts:{}};
 async function loadCommentCount(key){if(!BACKEND||!sb||interactionCache.counts[key]!==undefined)return;const t=interactionTarget(key);if(!t||t.type==='discussion')return;try{const {count,error}=await sb.from('content_comments').select('id',{count:'exact',head:true}).eq('target_type',t.type).eq('target_id',t.id);if(error)throw error;interactionCache.counts[key]=count||0;document.querySelectorAll(`.cc[data-key="${key}"]`).forEach(e=>e.textContent=String((count||0)+(+e.dataset.base||0)))}catch(e){console.warn('Не удалось загрузить количество комментариев',e)}}
-function interactionTarget(key){const i=String(key).indexOf('-');if(i<1)return null;const p=key.slice(0,i),id=key.slice(i+1);if(!['post','proj','disc'].includes(p))return null;return {key,type:p==='post'?'post':p==='proj'?'project':'discussion',id};}
+function interactionTarget(key){const i=String(key).indexOf('-');if(i<1)return null;const p=key.slice(0,i),id=key.slice(i+1);if(!['post','proj','uproj','disc'].includes(p))return null;return {key,type:p==='post'?'post':(p==='proj'||p==='uproj')?'project':'discussion',id};}
 function setVoteUi(key,score,mine){document.querySelectorAll(`.vote-control[data-key="${key}"]`).forEach(box=>{box.dataset.base=String(score);box.querySelector('.up')?.classList.toggle('active',mine===1);box.querySelector('.down')?.classList.toggle('active',mine===-1);const c=box.querySelector('.vote-count');if(c){c.textContent=scoreText(score);c.className='vote-count '+(score<0?'negative':'positive')}})}
 async function loadVoteState(key){
  if(!BACKEND||!sb)return;
