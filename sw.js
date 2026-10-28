@@ -1,5 +1,5 @@
 
-const VERSION = 'studhub-v3';
+const VERSION = 'studhub-v4';
 
 const SHELL = [
   './',
