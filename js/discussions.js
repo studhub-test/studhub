@@ -31,7 +31,7 @@ async function loadDiscussions(){
 function renderDiscussions(){
  const box=document.getElementById('discList');if(!box)return;
  const votes=lsGet('studhub_votes',{}),list=getDiscs().filter(d=>(discCat==='Все'||d.cat===discCat)&&(!discMine&&(true)||d.mine)&&(!discQ||(d.title+' '+d.text+' '+d.author).toLowerCase().includes(discQ)));
- const score=d=>d.base+(votes['disc-'+d.id]||0),comments=d=>d.db?(d.c0||0):(d.c0||0)+getComments('disc-'+d.id).length;
+ const score=d=>BACKEND?(interactionCache.votes['disc-'+d.id]?.score||0):d.base+(votes['disc-'+d.id]||0),comments=d=>d.db?(d.c0||0):(d.c0||0)+getComments('disc-'+d.id).length;
  const hot=d=>(score(d)+comments(d)+1)/Math.pow((Date.now()-d.ts)/36e5+2,1.2);
  list.sort(discSort==='new'?(a,b)=>b.ts-a.ts:discSort==='top'?(a,b)=>score(b)-score(a):discSort==='comments'?(a,b)=>comments(b)-comments(a):(a,b)=>hot(b)-hot(a));
  const total=getDiscs().length, mine=getDiscs().filter(d=>d.mine).length;

@@ -7,13 +7,7 @@ const DEFAULT_REWARDS = [
  {amount:500,title:'Закрытые обновления',desc:'Доступ к закрытым обновлениям проекта.'},
  {amount:1000,title:'Соавтор',desc:'Всё из предыдущих уровней + ранний доступ к результату.'}
 ];
-const fundraisingProjects=[
- {id:'fund-map',name:'Карта тихих мест для учёбы',desc:'Интерактивная карта библиотек, свободных аудиторий и кофеен рядом с кампусом.',about:'Собираем и проверяем места, где можно спокойно учиться: розетки, Wi-Fi, часы работы, уровень шума. Деньги пойдут на хостинг, домен и оплату работы дизайнера.',owner:'Л. Галлахер',goal:25000,raised:18400,backers:41,likes:56,icon:'⌖',category:'Образование'},
- {id:'fund-lab',name:'Студенческая мастерская',desc:'Оборудование и материалы для совместных учебных и творческих проектов.',about:'Хотим оборудовать мастерскую в колледже: инструменты, паяльные станции, расходники. Доступ будет бесплатным для студентов.',owner:'Команда CampusLab',goal:40000,raised:27600,backers:63,likes:88,icon:'✦',category:'Творчество'},
- {id:'fund-bot',name:'Учебный бот-помощник',desc:'Бот с расписанием, напоминаниями и полезными материалами для студентов.',about:'Telegram-бот: расписание, дедлайны, напоминания о зачётах и подборки материалов. Средства — на сервер и разработку.',owner:'А. Смирнов',goal:15000,raised:12150,backers:37,likes:44,icon:'{}',category:'Технологии'},
- {id:'fund-print',name:'Доступная 3D-печать',desc:'Собираем средства на пластик и обслуживание принтера для учебных макетов и прототипов.',about:'Печать макетов и прототипов для курсовых по себестоимости. Деньги пойдут на пластик, запчасти и обслуживание принтера.',owner:'Инициатива «Мейкерская»',goal:32000,raised:9600,backers:18,likes:23,icon:'3D',category:'Инженерия'},
- {id:'fund-zine',name:'Студенческий журнал',desc:'Первый выпуск независимого журнала с иллюстрациями, интервью и историями студентов.',about:'Независимый журнал о студенческой жизни Калининграда. Средства — на вёрстку, печать тиража и гонорары иллюстраторам.',owner:'Редакция «Перемена»',goal:18000,raised:12600,backers:29,likes:35,icon:'Ж',category:'Медиа'}
-];
+const fundraisingProjects=[]; // Демо-проекты удалены: отображаются только реальные проекты пользователей.
 const CATEGORIES=['Образование','Творчество','Технологии','Инженерия','Медиа','Другое'];
 
 /* ===== Публичные проекты пользователей =====
@@ -22,7 +16,7 @@ const CATEGORIES=['Образование','Творчество','Технол�
 const PUB_KEY='studhub_public_projects';
 function getPublicProjects(){if(BACKEND)return PUB_CACHE;try{const l=JSON.parse(localStorage.getItem(PUB_KEY)||'[]');return Array.isArray(l)?l:[]}catch(e){return[]}}
 function savePublicProjects(l){if(BACKEND)return;localStorage.setItem(PUB_KEY,JSON.stringify(l))}
-const allCampaigns=()=>[...getPublicProjects().slice().sort((a,b)=>b.createdAt-a.createdAt),...fundraisingProjects];
+const allCampaigns=()=>getPublicProjects().slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
 const findCampaign=id=>allCampaigns().find(p=>p.id===id);
 const rewardsOf=p=>p.pub?(p.rewards||[]):(p.rewards||DEFAULT_REWARDS);
 const getDonations=()=>BACKEND?MY_DONATIONS:lsGet('studhub_donations',[]);
@@ -48,7 +42,7 @@ function campaignStatus(p){
  return {label:'Идёт сбор',cls:'status-active'};
 }
 function daysLeftText(p){
- if(!p.deadline)return 'Демо-проект';
+ if(!p.deadline)return 'Без срока';
  const d=Math.ceil((p.deadline-Date.now())/DAY_MS);
  if(d<0||Date.now()>p.deadline)return 'Сбор завершён';
  if(d<=1)return 'Последний день';
