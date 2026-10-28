@@ -346,6 +346,13 @@
 <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('discModal')">Отмена</button><button class="btn-submit" onclick="submitDiscussion()">Опубликовать</button></div>
 </div></div>
 
+<!-- ПОЛНОЦЕННОЕ ОКНО ОБСУЖДЕНИЯ -->
+<div class="modal-overlay disc-thread-overlay" id="discThreadModal" onclick="if(event.target===this)closeModal('discThreadModal')"><div class="modal disc-thread-modal">
+<div class="modal-header"><div><div class="modal-title">Обсуждение</div><div class="disc-thread-subtitle">Тема и ответы участников</div></div><button class="modal-close" onclick="closeModal('discThreadModal')" aria-label="Закрыть">✕</button></div>
+<div class="modal-body disc-thread-modal-body"><div id="discThreadContent"></div></div>
+<div class="disc-thread-composer-wrap"><div class="disc-thread-composer-avatar" id="discThreadAvatar">Я</div><div class="disc-thread-composer"><textarea id="discThreadReply" maxlength="1000" rows="2" placeholder="Напишите развёрнутый ответ…" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter')submitDiscReply(activeDiscThread)"></textarea><div class="disc-thread-composer-footer"><span>Будьте уважительны к другим участникам</span><button class="btn-submit" id="discThreadSend" onclick="submitDiscReply(activeDiscThread)">Отправить ответ <span>↗</span></button></div></div></div>
+</div></div>
+
 <!-- ПОСТ В ПРОФИЛЕ -->
 <div class="modal-overlay" id="postModal"><div class="modal">
 <div class="modal-header"><div class="modal-title">Новый пост</div><button class="modal-close" onclick="closeModal('postModal')">✕</button></div>

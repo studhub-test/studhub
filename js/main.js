@@ -20,6 +20,7 @@ if (!getActiveAccount()) {
   renderAssets();
   renderDiscFilters();
   renderDiscussions();
+  if (BACKEND) loadDiscussions();
   renderProfileTab();
   renderAccountSettings();
   renderNotifs(); renderWallet();
