@@ -104,6 +104,28 @@ async function refreshLive() { // фоновое обновление: чужи�
   try { await loadAll(); renderFundraisingProjects(); renderFundedProjects(); renderMyProjects(); renderWallet(); } finally { refreshing = false; }
 }
 
+/* ---------- Профили и публикации ---------- */
+async function backendSavePublicProfile(user) {
+  try {
+    const fields = { name: String(user.name || 'Студент').slice(0, 40), username: String(user.username || '').toLowerCase(), subtitle: String(user.subtitle || '').slice(0, 120), bio: String(user.bio || '').slice(0, 1000), city: String(user.city || '').slice(0, 100), campus: String(user.campus || '').slice(0, 80), interests: String(user.interests || '').slice(0, 500) };
+    const { error } = await need().from('profiles').update(fields).eq('id', activeUserId());
+    return error ? { error } : { ok: true };
+  } catch (error) { return { error }; }
+}
+async function backendSearchProfiles(query) {
+  const q = String(query || '').trim().replace(/^@/, '');
+  if (!q || q.length < 2 || !BACKEND || !sb) return [];
+  try {
+    const select = 'id,name,username,subtitle,bio,city,campus,interests,created_at';
+    const [byUsername, byName] = await Promise.all([
+      ok(need().from('public_profiles').select(select).ilike('username', `%${q}%`).limit(8)),
+      ok(need().from('public_profiles').select(select).ilike('name', `%${q}%`).limit(8)),
+    ]);
+    const merged = new Map(); [...byUsername, ...byName].forEach(p => merged.set(p.id, p));
+    return [...merged.values()].slice(0, 8);
+  } catch (e) { console.warn('Не удалось найти профили', e); return []; }
+}
+
 /* ---------- Аккаунты ---------- */
 async function backendInit() {
   if (!window.supabase) { console.error('supabase-js не загружен'); return; }

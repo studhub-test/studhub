@@ -1,29 +1,35 @@
 // Профиль пользователя и его редактирование
 function updateProfile() {
-const user = getCurrentUser();
+const user = (typeof viewingProfile !== 'undefined' && viewingProfile) ? viewingProfile : getCurrentUser();
+const isOwnProfile = !(typeof viewingProfile !== 'undefined' && viewingProfile) || viewingProfile.id === activeUserId();
 const initials = getInitials(user.name);
-document.getElementById('profileName').textContent = user.name;
+const ownUser = getCurrentUser();
+const ownInitials = getInitials(ownUser.name);
+document.getElementById('profileName').textContent = user.name || 'Студент';
+const editSection = document.querySelector('.profile-edit-section'); if (editSection) editSection.style.display = isOwnProfile ? '' : 'none';
+const coverEdit = document.querySelector('.cover-edit-btn'); if (coverEdit) coverEdit.style.display = isOwnProfile ? '' : 'none';
 const profileAvatar = document.getElementById('profileAvatarLarge');
 const headerAvatar = document.getElementById('userAvatarHeader');
 profileAvatar.textContent = user.avatar ? '' : initials;
-headerAvatar.textContent = user.avatar ? '' : initials;
+headerAvatar.textContent = ownUser.avatar ? '' : ownInitials;
 profileAvatar.style.backgroundImage = user.avatar ? `url("${user.avatar}")` : '';
-headerAvatar.style.backgroundImage = user.avatar ? `url("${user.avatar}")` : '';
-document.getElementById('userNameHeader').textContent = user.name;
+headerAvatar.style.backgroundImage = ownUser.avatar ? `url("${ownUser.avatar}")` : '';
+document.getElementById('userNameHeader').textContent = ownUser.name;
 document.querySelectorAll('.composer-avatar').forEach(el => el.textContent = initials);
-if (document.getElementById('profileSubtitle')) document.getElementById('profileSubtitle').textContent = [user.subtitle || 'КИТиС · 1 курс', user.city || 'Калининград'].filter(Boolean).join(' · ');
-const acc = getActiveAccount();
+if (document.getElementById('profileSubtitle')) document.getElementById('profileSubtitle').textContent = [user.subtitle, user.city].filter(Boolean).join(' · ') || (isOwnProfile ? 'Добавьте информацию о себе в настройках профиля' : 'Пользователь StudHub');
+const acc = isOwnProfile ? getActiveAccount() : null;
 const isDemoProfile = !acc || user.username === 'dimidrol'; // демо-цифры (подписчики, отзывы) только у перенесённого демо-профиля
 const emptyBio = 'Расскажите о себе: нажмите «Редактировать профиль».';
 if (document.getElementById('profileAboutText')) document.getElementById('profileAboutText').textContent = user.bio || (isDemoProfile ? document.getElementById('profileAboutText').textContent : emptyBio);
-if (!isDemoProfile) { // у нового аккаунта пока нет подписчиков и отзывов
+if (!isDemoProfile || !isOwnProfile) { // у нового аккаунта пока нет подписчиков и отзывов
   [['statFollowers', 0], ['statFollowing', 0], ['statReviews', 0]].forEach(([id, v]) => { const el = document.getElementById(id); if (el) el.textContent = v; });
 }
 const tagsBox = document.getElementById('profileInterests');
-if (tagsBox && !isDemoProfile) tagsBox.innerHTML = (user.interests || '').split(',').map(x => x.trim()).filter(Boolean).map(x => '<span class="interest-tag">' + escapeHtml(x) + '</span>').join('');
+if (tagsBox && (!isDemoProfile || !isOwnProfile)) tagsBox.innerHTML = (user.interests || '').split(',').map(x => x.trim()).filter(Boolean).map(x => '<span class="interest-tag">' + escapeHtml(x) + '</span>').join('') || 'Пока не указаны';
 const campusCity = document.querySelector('.campus-info-city'); if(campusCity) campusCity.textContent = user.city || 'Калининград';
-if (document.getElementById('profileBio')) document.getElementById('profileBio').textContent = user.bio || (isDemoProfile ? 'Пишу код, собираю команду и превращаю идеи в проекты.' : emptyBio);
-if (document.getElementById('profileJoined')) document.getElementById('profileJoined').textContent = '@' + (user.username || 'dimidrol') + ' · На StudHub с ' + (acc ? new Date(acc.createdAt).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }) : 'сентября 2026');
+if (document.getElementById('profileBio')) document.getElementById('profileBio').textContent = user.bio || (isOwnProfile && isDemoProfile ? 'Пишу код, собираю команду и превращаю идеи в проекты.' : 'Пользователь пока не рассказал о себе.');
+if (document.getElementById('profileJoined')) document.getElementById('profileJoined').textContent = '@' + (user.username || 'student') + (acc ? ' · На StudHub с ' + new Date(acc.createdAt).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }) : '');
+const about = document.getElementById('profileAboutText'); if (about) about.textContent = user.bio || 'Пользователь пока не рассказал о себе.';
 const projects = getProjects();
 document.getElementById('profileProjectsCount').textContent = projects.length;
 document.getElementById('profileTabProjectsCount').textContent = projects.length;
@@ -31,6 +37,7 @@ document.getElementById('profileTabProjectsCount').textContent = projects.length
 
 // Edit Profile Modal
 function openEditProfileModal() {
+if (typeof viewingProfile !== 'undefined' && viewingProfile) return;
 const user = getCurrentUser();
 document.getElementById('editProfileName').value = user.name || '';
 document.getElementById('editProfileSubtitle').value = user.subtitle || '';
@@ -63,6 +70,10 @@ if (avatarFile) {
   if (!avatarFile.type.startsWith('image/')) { showToast('Выберите файл изображения', 'error'); return; }
   if (avatarFile.size > 2 * 1024 * 1024) { showToast('Аватар должен быть не больше 2 МБ', 'error'); return; }
   user.avatar = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(avatarFile); });
+}
+if (BACKEND && sb && typeof backendSavePublicProfile === 'function') {
+  const result = await backendSavePublicProfile(user);
+  if (result && result.error) { showToast('Не удалось сохранить профиль в базе данных', 'error'); return; }
 }
 saveCurrentUser(user);
 closeEditProfileModal();
