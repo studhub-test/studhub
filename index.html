@@ -415,11 +415,7 @@
 </div>
 <div class="auth-info auth-only-register" id="authMigrate" style="display:none" data-i18n="auth.migrate">Найдены данные, созданные до появления аккаунтов (проекты, кошелёк, комментарии). Они будут привязаны к этому первому аккаунту.</div>
 <div class="auth-field auth-only-register"><label for="authName" data-i18n="auth.name">Имя и фамилия</label><input class="form-input" id="authName" autocomplete="name" maxlength="40" placeholder="Иван Петров"></div>
-<div class="auth-field auth-only-register">
-<label for="authUsername" data-i18n="auth.username">Юзернейм</label>
-<input class="form-input" id="authUsername" autocomplete="username" maxlength="20" minlength="3" placeholder="student_123" pattern="[A-Za-z0-9_.]{3,20}" aria-describedby="authUsernameHint">
-<div class="setting-desc" id="authUsernameHint" data-i18n="auth.usernameHint">3–20 символов: латиница, цифры, точка и подчёркивание. Без учёта регистра.</div>
-</div>
+<div class="auth-field auth-only-register"><label for="authUsername" data-i18n="auth.username">Юзернейм</label><input class="form-input" id="authUsername" autocomplete="username" maxlength="20" minlength="3" pattern="[a-zA-Z0-9_.]{3,20}" placeholder="student_123" data-i18n-ph="auth.usernamePlaceholder" aria-describedby="authUsernameHint"><div class="setting-desc" id="authUsernameHint" data-i18n="auth.usernameHint">3–20 символов: латиница, цифры, точка и подчёркивание. Без учёта регистра.</div></div>
 <div class="auth-field"><label for="authEmail" data-i18n="auth.email">Email</label><input class="form-input" id="authEmail" type="email" autocomplete="email" maxlength="100" placeholder="you@example.com"></div>
 <div class="auth-field"><label for="authPassword" data-i18n="auth.password">Пароль</label>
 <div class="pw-wrap"><input class="form-input" id="authPassword" type="password" autocomplete="current-password" maxlength="100" oninput="updateStrength()"><button type="button" class="pw-toggle" onclick="togglePw(this)" aria-label="Show password">👁</button></div>

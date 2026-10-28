@@ -140,10 +140,20 @@ async function backendUpdateUsername(username) {
   } catch (e) { return { error: 'auth.err.bad' }; }
 }
 async function backendRegister({ name, username, email, password }) {
-  const { data, error } = await need().auth.signUp({ email, password, options: { data: { name, username } } });
+  // Проверяем юзернейм до создания auth-пользователя, чтобы показать понятную ошибку.
+  const normalizedUsername = String(username || '').trim().replace(/^@/, '').toLowerCase();
+  const { data: usernameAvailable, error: usernameCheckError } = await need()
+    .rpc('is_username_available', { candidate: normalizedUsername });
+  if (usernameCheckError) {
+    console.error('Не удалось проверить уникальность юзернейма:', usernameCheckError);
+    return { error: 'auth.err.usernameCheckUnavailable' };
+  }
+  if (usernameAvailable !== true) return { error: 'auth.err.usernameTaken' };
+
+  const { data, error } = await need().auth.signUp({ email, password, options: { data: { name, username: normalizedUsername } } });
   if (error) {
-    if (/username|profiles_username/i.test(error.message || '')) return { error: 'auth.err.usernameTaken' };
-    return { error: /registered|exists/i.test(error.message) ? 'auth.err.exists' : /rate|limit/i.test(error.message) ? 'auth.err.rate' : 'auth.err.bad' };
+    if (/username|profiles_username|duplicate key|unique constraint/i.test(error.message || '')) return { error: 'auth.err.usernameTaken' };
+    return { error: /registered|exists/i.test(error.message || '') ? 'auth.err.exists' : /rate|limit/i.test(error.message || '') ? 'auth.err.rate' : 'auth.err.bad' };
   }
   if (!data.session) return { error: 'auth.err.confirm' };   // в Supabase включено подтверждение почты
   setLocalSession(data.user);

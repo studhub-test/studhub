@@ -49,7 +49,7 @@ const I18N = {
     'w.notif.support': 'Вы поддержали проект ', 'w.balance.short': 'Баланс кошелька: ', 'w.need': 'Недостаточно средств. Не хватает ',
     'w.confirm': 'Списать с кошелька ', 'sup.btn': 'Поддержать', 'common.cancel': 'Отмена',
     'auth.tagline': 'Краудфандинг студенческих проектов', 'auth.login': 'Вход', 'auth.register': 'Регистрация',
-    'auth.name': 'Имя и фамилия', 'auth.username': 'Юзернейм', 'auth.usernameHint': '3–20 символов: латиница, цифры, точка и подчёркивание. Без учёта регистра.', 'auth.email': 'Email', 'auth.password': 'Пароль', 'auth.password2': 'Повторите пароль',
+    'auth.name': 'Имя и фамилия', 'auth.username': 'Юзернейм', 'auth.usernamePlaceholder': 'Например, student_123', 'auth.usernameHint': '3–20 символов: латиница, цифры, точка и подчёркивание. Без учёта регистра.', 'auth.usernameCheckUnavailable': 'Не удалось проверить юзернейм. Обновите SQL-миграцию в Supabase и попробуйте снова.', 'auth.email': 'Email', 'auth.password': 'Пароль', 'auth.password2': 'Повторите пароль',
     'auth.pwrule': 'Минимум 8 символов, буквы и цифры', 'auth.remember': 'Запомнить меня на этом устройстве',
     'auth.agree': 'Я принимаю правила и политику конфиденциальности', 'auth.submit.login': 'Войти', 'auth.submit.register': 'Создать аккаунт',
     'auth.weak': 'Слабый', 'auth.medium': 'Средний', 'auth.strong': 'Надёжный',
@@ -110,7 +110,7 @@ const I18N = {
     'w.confirm': 'Charge from wallet: ', 'sup.btn': 'Support', 'common.cancel': 'Cancel',
 
     'auth.tagline': 'Crowdfunding for student projects', 'auth.login': 'Log in', 'auth.register': 'Sign up',
-    'auth.name': 'Full name', 'auth.username': 'Username', 'auth.usernameHint': '3–20 characters: letters, numbers, dot and underscore. Case-insensitive.', 'auth.email': 'Email', 'auth.password': 'Password', 'auth.password2': 'Repeat password',
+    'auth.name': 'Full name', 'auth.username': 'Username', 'auth.usernamePlaceholder': 'For example, student_123', 'auth.usernameHint': '3–20 characters: letters, numbers, dot and underscore. Case-insensitive.', 'auth.usernameCheckUnavailable': 'Could not check username. Update the SQL migration in Supabase and try again.', 'auth.email': 'Email', 'auth.password': 'Password', 'auth.password2': 'Repeat password',
     'auth.pwrule': 'At least 8 characters, letters and digits', 'auth.remember': 'Remember me on this device',
     'auth.agree': 'I accept the rules and the privacy policy', 'auth.submit.login': 'Log in', 'auth.submit.register': 'Create account',
     'auth.weak': 'Weak', 'auth.medium': 'Medium', 'auth.strong': 'Strong',

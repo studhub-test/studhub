@@ -65,3 +65,26 @@ end $$;
 
 -- Разрешаем пользователю обновлять только свой профиль, включая username.
 grant update (name, username) on public.profiles to authenticated;
+
+
+-- Проверка доступности юзернейма до регистрации. Вызывается из браузера через Supabase RPC.
+create or replace function public.is_username_available(candidate text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select candidate ~ '^[a-z0-9_.]{3,20}$'
+     and not exists (
+       select 1 from public.profiles p
+       where lower(p.username) = lower(candidate)
+     );
+$$;
+revoke all on function public.is_username_available(text) from public;
+grant execute on function public.is_username_available(text) to anon, authenticated;
+
+-- Убеждаемся, что триггер регистрации использует обновлённую функцию.
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created after insert on auth.users
+  for each row execute function public.handle_new_user();
