@@ -1,5 +1,5 @@
 
-const VERSION = 'studhub-v11';
+const VERSION = 'studhub-v12';
 
 const SHELL = [
   './',
@@ -16,6 +16,7 @@ const SHELL = [
   './css/project.css',
   './css/mobile.css',
   './js/theme-init.js',
+  './js/supabase.min.js'
   './js/storage.js',
   './js/i18n.js',
   './js/core.js',
