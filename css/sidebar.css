@@ -33,3 +33,6 @@
 .sb-chat-input { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--surface-3); }
 .sb-chat-input .form-input { flex: 1; }
 @media (max-width: 600px) { .sb-chat { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: 75vh; } .sb-chat-side { display: flex; border-right: none; border-bottom: 1px solid var(--surface-3); overflow-x: auto; } .sb-clip { display: none; } .sb-sch-form { grid-template-columns: 1fr; } }
+
+.sb-chat-head b.sb-link { cursor: pointer; color: var(--accent); }
+.sb-chat-head b.sb-link:hover { text-decoration: underline; }

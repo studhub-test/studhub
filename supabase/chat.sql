@@ -35,12 +35,13 @@ grant select on public.messages to authenticated;
 grant insert (recipient_id, body) on public.messages to authenticated;
 grant delete on public.messages to authenticated;
 
--- Поиск собеседников. Работает с правами владельца (security definer), поэтому не зависит от
--- того, что видит представление public_profiles. Отдаёт только публичные поля, себя не возвращает.
+-- Поиск и загрузка профилей. Работают с правами владельца (security definer), поэтому не зависят
+-- от того, что видит представление public_profiles. Отдают только публичные поля.
+drop function if exists public.chat_find_profiles(text, integer);
 create or replace function public.chat_find_profiles(q text default '', lim integer default 8)
-returns table (id uuid, name text, username text, subtitle text)
+returns table (id uuid, name text, username text, subtitle text, bio text, city text, campus text, interests text, created_at timestamptz)
 language sql stable security definer set search_path = public as $$
-  select p.id, p.name, p.username, p.subtitle
+  select p.id, p.name, p.username, p.subtitle, p.bio, p.city, p.campus, p.interests, p.created_at
   from public.profiles p
   where p.id <> auth.uid()
     and (btrim(coalesce(q, '')) = ''
@@ -51,3 +52,14 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.chat_find_profiles(text, integer) from public, anon;
 grant execute on function public.chat_find_profiles(text, integer) to authenticated;
+
+create or replace function public.chat_get_profiles(ids uuid[])
+returns table (id uuid, name text, username text, subtitle text, bio text, city text, campus text, interests text, created_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select p.id, p.name, p.username, p.subtitle, p.bio, p.city, p.campus, p.interests, p.created_at
+  from public.profiles p
+  where p.id = any(ids)
+  limit 50
+$$;
+revoke all on function public.chat_get_profiles(uuid[]) from public, anon;
+grant execute on function public.chat_get_profiles(uuid[]) to authenticated;

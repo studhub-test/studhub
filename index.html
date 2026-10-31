@@ -319,7 +319,7 @@
 <div class="sb-chat">
 <div class="sb-chat-side"><div id="chatSearchWrap" style="display:none;padding:2px 2px 8px"><input class="form-input" id="chatSearch" placeholder="Найти студента…" oninput="sbSearchPeople(this.value)" autocomplete="off" style="padding:9px 12px"><div id="chatFound"></div></div><div id="chatPeople"></div></div>
 <div class="sb-chat-main">
-<div class="sb-chat-head"><b id="chatTitle"></b><span id="chatSub"></span></div>
+<div class="sb-chat-head"><b id="chatTitle" onclick="openChatProfile()" title="Открыть профиль"></b><span id="chatSub"></span></div>
 <div class="sb-msgs" id="chatMsgs"></div>
 <div class="sb-note" id="chatNote"></div>
 <div class="sb-chat-input"><input class="form-input" id="chatInput" maxlength="1000" placeholder="Напишите сообщение..." autocomplete="off"><button class="btn-submit" id="chatSend" onclick="sendChatMsg()">Отправить</button></div>

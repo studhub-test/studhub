@@ -116,6 +116,8 @@ async function backendSearchProfiles(query) {
   const q = String(query || '').trim().replace(/^@/, '');
   if (!q || q.length < 2 || !BACKEND || !sb) return [];
   try {
+    const viaFn = await need().rpc('chat_find_profiles', { q, lim: 8 });   // функция из supabase/chat.sql, не зависит от прав на public_profiles
+    if (!viaFn.error) return viaFn.data || [];
     const select = 'id,name,username,subtitle,bio,city,campus,interests,created_at';
     const [byUsername, byName] = await Promise.all([
       ok(need().from('public_profiles').select(select).ilike('username', `%${q}%`).limit(8)),

@@ -76,8 +76,9 @@ const SB_COLORS = [['#f0e8f8', '#8b6ab5'], ['#e8f0f8', '#4a8ab5'], ['#f5f0e8', '
 let sbPeers = [], sbThreads = {}, sbChatWith = null, sbPoll = null, sbSearchT = null, sbSetupHint = false;
 function sbOnlineMode() { return typeof BACKEND !== 'undefined' && BACKEND && typeof sb !== 'undefined' && sb; }
 const sbIni = n => (String(n || '?').trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2)) || '?';
-function sbPeerFrom(id, name, role) { const c = SB_COLORS[(String(id).charCodeAt(0) || 0) % SB_COLORS.length]; return { id, name: name || 'Студент', role: role || 'Студент', ini: sbIni(name), bg: c[0], fg: c[1] }; }
-function sbAddPeer(p) { if (!sbPeers.some(x => x.id === p.id)) sbPeers.push(p); }
+function sbPeerFrom(id, name, role, profile) { const c = SB_COLORS[(String(id).charCodeAt(0) || 0) % SB_COLORS.length]; return { id, name: name || 'Студент', role: role || 'Студент', ini: sbIni(name), bg: c[0], fg: c[1], profile: profile || null }; }
+function sbPeerFromRow(r) { return sbPeerFrom(r.id, r.name, r.subtitle || (r.username ? '@' + r.username : 'Студент'), r); }
+function sbAddPeer(p) { const i = sbPeers.findIndex(x => x.id === p.id); if (i < 0) sbPeers.push(p); else if (p.profile) sbPeers[i] = p; }
 
 // Загрузка переписок: из базы или из браузера
 async function sbLoad() {
@@ -100,10 +101,13 @@ async function sbLoad() {
   Object.keys(threads).forEach(id => order.push(id));
   order.sort((a, b) => threads[b][threads[b].length - 1].ts - threads[a][threads[a].length - 1].ts);
   const known = new Map(sbPeers.map(p => [p.id, p]));
-  const missing = order.filter(id => !known.has(id));
+  const missing = order.filter(id => !known.has(id) || !known.get(id).profile);
   if (missing.length) {
-    const { data: profs } = await sb.from('public_profiles').select('id,name,subtitle').in('id', missing);
-    (profs || []).forEach(p => known.set(p.id, sbPeerFrom(p.id, p.name, p.subtitle)));
+    let rows = null;
+    const viaFn = await sb.rpc('chat_get_profiles', { ids: missing });          // функция из supabase/chat.sql
+    if (!viaFn.error) rows = viaFn.data;
+    else { const v = await sb.from('public_profiles').select('id,name,username,subtitle,bio,city,campus,interests,created_at').in('id', missing); rows = v.data; }
+    (rows || []).forEach(r => known.set(r.id, sbPeerFromRow(r)));
   }
   const keep = sbPeers.filter(p => !threads[p.id]);            // найденные через поиск, но без переписки
   sbPeers = [...order.map(id => known.get(id) || sbPeerFrom(id, 'Студент')), ...keep];
@@ -132,7 +136,7 @@ async function sbRefreshBlock() {
     const { rows } = await sbFindProfiles('', 8 + list.length);
     const me = activeUserId(), have = new Set(list.map(p => p.id));
     const more = rows.filter(r => r.id !== me && !have.has(r.id)).slice(0, 4 - list.length);
-    more.forEach(r => { const pp = sbPeerFrom(r.id, r.name, r.subtitle || (r.username ? '@' + r.username : 'Студент')); sbAddPeer(pp); html += sbMemberHtml(pp, pp.role, `openChat('${pp.id}')`, false); });
+    more.forEach(r => { const pp = sbPeerFromRow(r); sbAddPeer(pp); html += sbMemberHtml(pp, pp.role, `openChat('${pp.id}')`, false); });
   }
   box.innerHTML = html || '<div class="sb-empty" style="padding:12px 4px">Пока здесь никого нет. Пригласите друзей на StudHub — они появятся в этом списке.</div>';
 }
@@ -186,7 +190,9 @@ function renderChat(keepInput) {
     || '<div class="sb-empty">Найдите студента по имени или @нику, чтобы начать чат.</div>';
   const m = sbPeers.find(p => p.id === sbChatWith);
   input.disabled = send.disabled = !m;
-  document.getElementById('chatTitle').textContent = m ? m.name : 'Чат';
+  const ct = document.getElementById('chatTitle');
+  ct.textContent = m ? m.name : 'Чат';
+  ct.classList.toggle('sb-link', !!(m && m.profile));
   document.getElementById('chatSub').textContent = m ? m.role : '';
   document.getElementById('chatNote').textContent = sbOnlineMode() ? 'Сообщения видите только вы и собеседник.' : 'Демо-режим: сообщения сохраняются на этом устройстве.';
   if (sbSetupHint) { box.innerHTML = '<div class="sb-empty">Чат ещё не подключён к базе: выполните файл <b>supabase/chat.sql</b> в Supabase → SQL Editor.</div>'; return; }
@@ -226,7 +232,7 @@ function sbSearchPeople(q) {
     const { rows, error } = await sbFindProfiles(q);
     if (error) { console.warn('Поиск профилей', error); out.innerHTML = '<div class="sb-empty" style="padding:8px">Поиск недоступен: выполните <b>supabase/chat.sql</b> в Supabase → SQL Editor.</div>'; return; }
     const me = activeUserId(), res = rows.filter(p => p.id !== me);
-    res.forEach(p => sbAddPeer(sbPeerFrom(p.id, p.name, p.subtitle)));
+    res.forEach(p => sbAddPeer(sbPeerFromRow(p)));
     out.innerHTML = res.length ? res.map(p => `<div class="sb-person" onclick="sbStartWith('${p.id}')"><div class="online-member-name">${SB_ESC(p.name)}${p.username ? ' <span style="color:var(--muted-2);font-weight:400">@' + SB_ESC(p.username) + '</span>' : ''}</div></div>`).join('') : '<div class="sb-empty" style="padding:8px">Никого не нашли. Проверьте имя или @ник.</div>';
   }, 250);
 }
@@ -244,3 +250,11 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') ['scheduleModal', 'helpModal', 'chatModal'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('show'); });
   if (e.key === 'Enter' && !e.shiftKey && e.target && e.target.id === 'chatInput') { e.preventDefault(); sendChatMsg(); }
 });
+
+// Открыть профиль собеседника (из шапки чата)
+function openChatProfile() {
+  const m = sbPeers.find(p => p.id === sbChatWith);
+  if (!m || !m.profile) return;
+  closeModal('chatModal'); clearInterval(sbPoll);
+  openPublicProfile(m.profile);
+}
