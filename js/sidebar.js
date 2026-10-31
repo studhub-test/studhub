@@ -106,7 +106,7 @@ async function sbLoad() {
     let rows = null;
     const viaFn = await sb.rpc('chat_get_profiles', { ids: missing });          // функция из supabase/chat.sql
     if (!viaFn.error) rows = viaFn.data;
-    else { const v = await sb.from('public_profiles').select('id,name,username,subtitle,bio,city,campus,interests,created_at').in('id', missing); rows = v.data; }
+    else { const v = await sb.from('public_profiles').select('id,name,username,subtitle,bio,city,campus,interests,created_at,avatar_url').in('id', missing); rows = v.data; }
     (rows || []).forEach(r => known.set(r.id, sbPeerFromRow(r)));
   }
   const keep = sbPeers.filter(p => !threads[p.id]);            // найденные через поиск, но без переписки
@@ -118,7 +118,7 @@ async function sbLoad() {
 // Блок «Свои на связи» в правой колонке
 function sbIsBackend() { return typeof BACKEND !== 'undefined' && !!BACKEND; }
 function sbMemberHtml(p, sub, click, dot) {
-  return `<div class="online-member is-link" role="button" tabindex="0" onclick="${click}" onkeydown="if(event.key==='Enter'){${click}}"><div class="online-member-avatar" style="background:${p.bg};color:${p.fg};">${SB_ESC(p.ini)}${dot ? '<span class="online-dot-sm"></span>' : ''}</div><div style="flex:1;min-width:0"><div class="online-member-name">${SB_ESC(p.name)}</div><div class="online-member-role sb-clip" style="max-width:none">${SB_ESC(sub)}</div></div></div>`;
+  return `<div class="online-member is-link" role="button" tabindex="0" onclick="${click}" onkeydown="if(event.key==='Enter'){${click}}"><div class="online-member-avatar" style="background:${p.profile && p.profile.avatar_url ? `url('${SB_ESC(p.profile.avatar_url)}') center/cover no-repeat` : p.bg};color:${p.fg};">${p.profile && p.profile.avatar_url ? '' : SB_ESC(p.ini)}${dot ? '<span class="online-dot-sm"></span>' : ''}</div><div style="flex:1;min-width:0"><div class="online-member-name">${SB_ESC(p.name)}</div><div class="online-member-role sb-clip" style="max-width:none">${SB_ESC(sub)}</div></div></div>`;
 }
 async function sbRefreshBlock() {
   const box = document.getElementById('sbOnline'); if (!box || !activeUserId()) return;
@@ -186,7 +186,7 @@ function renderChat(keepInput) {
   const side = document.getElementById('chatPeople'), box = document.getElementById('chatMsgs');
   const input = document.getElementById('chatInput'), send = document.getElementById('chatSend');
   side.innerHTML = sbPeers.map((p, i) => { const t = sbThreads[p.id] || [], last = t[t.length - 1];
-    return `<div class="sb-person${p.id === sbChatWith ? ' active' : ''}" onclick="sbPick(${i})"><div class="online-member-avatar" style="background:${p.bg};color:${p.fg};">${SB_ESC(p.ini)}</div><div style="min-width:0"><div class="online-member-name">${SB_ESC(p.name)}</div><div class="online-member-role sb-clip">${last ? SB_ESC(last.text) : SB_ESC(p.role)}</div></div></div>`; }).join('')
+    return `<div class="sb-person${p.id === sbChatWith ? ' active' : ''}" onclick="sbPick(${i})"><div class="online-member-avatar" style="background:${p.profile && p.profile.avatar_url ? `url('${SB_ESC(p.profile.avatar_url)}') center/cover no-repeat` : p.bg};color:${p.fg};">${p.profile && p.profile.avatar_url ? '' : SB_ESC(p.ini)}</div><div style="min-width:0"><div class="online-member-name">${SB_ESC(p.name)}</div><div class="online-member-role sb-clip">${last ? SB_ESC(last.text) : SB_ESC(p.role)}</div></div></div>`; }).join('')
     || '<div class="sb-empty">Найдите студента по имени или @нику, чтобы начать чат.</div>';
   const m = sbPeers.find(p => p.id === sbChatWith);
   input.disabled = send.disabled = !m;
@@ -233,7 +233,7 @@ function sbSearchPeople(q) {
     if (error) { console.warn('Поиск профилей', error); out.innerHTML = '<div class="sb-empty" style="padding:8px">Поиск недоступен: выполните <b>supabase/chat.sql</b> в Supabase → SQL Editor.</div>'; return; }
     const me = activeUserId(), res = rows.filter(p => p.id !== me);
     res.forEach(p => sbAddPeer(sbPeerFromRow(p)));
-    out.innerHTML = res.length ? res.map(p => `<div class="sb-person" onclick="sbStartWith('${p.id}')"><div class="online-member-name">${SB_ESC(p.name)}${p.username ? ' <span style="color:var(--muted-2);font-weight:400">@' + SB_ESC(p.username) + '</span>' : ''}</div></div>`).join('') : '<div class="sb-empty" style="padding:8px">Никого не нашли. Проверьте имя или @ник.</div>';
+    out.innerHTML = res.length ? res.map(p => `<div class="sb-person" onclick="sbStartWith('${p.id}')"><div class="online-member-avatar" style="background:${p.avatar_url ? `url('${SB_ESC(p.avatar_url)}') center/cover no-repeat` : 'var(--accent-soft)'};color:var(--accent)">${p.avatar_url ? '' : SB_ESC(sbIni(p.name))}</div><div class="online-member-name">${SB_ESC(p.name)}${p.username ? ' <span style="color:var(--muted-2);font-weight:400">@' + SB_ESC(p.username) + '</span>' : ''}</div></div>`).join('') : '<div class="sb-empty" style="padding:8px">Никого не нашли. Проверьте имя или @ник.</div>';
   }, 250);
 }
 function sbStartWith(id) {

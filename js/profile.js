@@ -10,12 +10,19 @@ const editSection = document.querySelector('.profile-edit-section'); if (editSec
 const coverEdit = document.querySelector('.cover-edit-btn'); if (coverEdit) coverEdit.style.display = isOwnProfile ? '' : 'none';
 const profileAvatar = document.getElementById('profileAvatarLarge');
 const headerAvatar = document.getElementById('userAvatarHeader');
-profileAvatar.textContent = user.avatar ? '' : initials;
-headerAvatar.textContent = ownUser.avatar ? '' : ownInitials;
-profileAvatar.style.backgroundImage = user.avatar ? `url("${user.avatar}")` : '';
-headerAvatar.style.backgroundImage = ownUser.avatar ? `url("${ownUser.avatar}")` : '';
+const profilePic = user.avatar_url || user.avatar || '';
+const ownPic = ownUser.avatar_url || ownUser.avatar || '';
+profileAvatar.textContent = profilePic ? '' : initials;
+headerAvatar.textContent = ownPic ? '' : ownInitials;
+profileAvatar.style.backgroundImage = profilePic ? `url("${profilePic}")` : '';
+headerAvatar.style.backgroundImage = ownPic ? `url("${ownPic}")` : '';
+profileAvatar.classList.toggle('has-avatar', !!profilePic);
+headerAvatar.classList.toggle('has-avatar', !!ownPic);
 document.getElementById('userNameHeader').textContent = ownUser.name;
-document.querySelectorAll('.composer-avatar').forEach(el => el.textContent = initials);
+document.querySelectorAll('.composer-avatar').forEach(el => {
+  el.textContent = ownPic ? '' : ownInitials;
+  el.style.backgroundImage = ownPic ? `url("${ownPic}")` : '';
+});
 if (document.getElementById('profileSubtitle')) document.getElementById('profileSubtitle').textContent = [user.subtitle, user.city].filter(Boolean).join(' · ') || (isOwnProfile ? 'Добавьте информацию о себе в настройках профиля' : 'Пользователь StudHub');
 const acc = isOwnProfile ? getActiveAccount() : null;
 const isDemoProfile = !acc || user.username === 'dimidrol'; // демо-цифры (подписчики, отзывы) только у перенесённого демо-профиля
@@ -53,6 +60,7 @@ function closeEditProfileModal() { document.getElementById('editProfileModal').c
 async function saveProfile() {
 const user = getCurrentUser();
 user.name = document.getElementById('editProfileName').value.trim() || user.name;
+if (user.name.length < 2 || user.name.length > 40) { showToast('Имя должно содержать от 2 до 40 символов', 'error'); return; }
 user.subtitle = document.getElementById('editProfileSubtitle').value.trim();
 user.bio = document.getElementById('editProfileBio').value.trim();
 const newUsername = document.getElementById('editProfileUsername').value.trim().replace(/^@/, '').toLowerCase();
@@ -67,9 +75,16 @@ user.campus = document.getElementById('editProfileCampus').value;
 user.interests = document.getElementById('editProfileInterests').value.trim();
 const avatarFile = document.getElementById('editProfileAvatar').files[0];
 if (avatarFile) {
-  if (!avatarFile.type.startsWith('image/')) { showToast('Выберите файл изображения', 'error'); return; }
+  if (!/^image\/(png|jpeg|webp|gif)$/.test(avatarFile.type)) { showToast('Выберите файл изображения', 'error'); return; }
   if (avatarFile.size > 2 * 1024 * 1024) { showToast('Аватар должен быть не больше 2 МБ', 'error'); return; }
-  user.avatar = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(avatarFile); });
+  if (BACKEND && sb) {
+    const uploaded = await backendUploadAvatar(avatarFile);
+    if (uploaded.error) { showToast(uploaded.error.message || uploaded.error, 'error'); return; }
+    user.avatar_url = uploaded.url;
+    user.avatar = uploaded.url;
+  } else {
+    user.avatar = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(avatarFile); });
+  }
 }
 if (BACKEND && sb && typeof backendSavePublicProfile === 'function') {
   const result = await backendSavePublicProfile(user);

@@ -105,9 +105,25 @@ async function refreshLive() { // фоновое обновление: чужи�
 }
 
 /* ---------- Профили и публикации ---------- */
+async function backendUploadAvatar(file) {
+  try {
+    if (!file || !/^image\/(png|jpeg|webp|gif)$/.test(file.type)) throw new Error('Формат аватарки: PNG, JPG, WEBP или GIF');
+    if (file.size > 2 * 1024 * 1024) throw new Error('Аватар должен быть не больше 2 МБ');
+    const uid = activeUserId();
+    if (!uid) throw new Error('not_authenticated');
+    const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' })[file.type];
+    const path = `${uid}/avatar.${ext}`;
+    const storage = need().storage.from('avatars');
+    const { error: uploadError } = await storage.upload(path, file, { upsert: true, contentType: file.type, cacheControl: '3600' });
+    if (uploadError) throw uploadError;
+    const { data } = storage.getPublicUrl(path);
+    return { url: data.publicUrl };
+  } catch (error) { return { error }; }
+}
 async function backendSavePublicProfile(user) {
   try {
-    const fields = { name: String(user.name || 'Студент').slice(0, 40), username: String(user.username || '').toLowerCase(), subtitle: String(user.subtitle || '').slice(0, 120), bio: String(user.bio || '').slice(0, 1000), city: String(user.city || '').slice(0, 100), campus: String(user.campus || '').slice(0, 80), interests: String(user.interests || '').slice(0, 500) };
+    const fields = { name: String(user.name || 'Студент').trim().slice(0, 40), username: String(user.username || '').toLowerCase(), subtitle: String(user.subtitle || '').slice(0, 120), bio: String(user.bio || '').slice(0, 1000), city: String(user.city || '').slice(0, 100), campus: String(user.campus || '').slice(0, 80), interests: String(user.interests || '').slice(0, 500) };
+    if (user.avatar_url) fields.avatar_url = user.avatar_url;
     const { error } = await need().from('profiles').update(fields).eq('id', activeUserId());
     return error ? { error } : { ok: true };
   } catch (error) { return { error }; }
@@ -118,7 +134,7 @@ async function backendSearchProfiles(query) {
   try {
     const viaFn = await need().rpc('chat_find_profiles', { q, lim: 8 });   // функция из supabase/chat.sql, не зависит от прав на public_profiles
     if (!viaFn.error) return viaFn.data || [];
-    const select = 'id,name,username,subtitle,bio,city,campus,interests,created_at';
+    const select = 'id,name,username,avatar_url,subtitle,bio,city,campus,interests,created_at';
     const [byUsername, byName] = await Promise.all([
       ok(need().from('public_profiles').select(select).ilike('username', `%${q}%`).limit(8)),
       ok(need().from('public_profiles').select(select).ilike('name', `%${q}%`).limit(8)),
@@ -144,9 +160,9 @@ async function backendInit() {
 }
 async function syncProfileFromDatabase(user) {
   try {
-    const profile = await ok(need().from('profiles').select('name, username').eq('id', user.id).single());
+    const profile = await ok(need().from('profiles').select('name, username, avatar_url, subtitle, bio, city, campus, interests').eq('id', user.id).single());
     const current = getCurrentUser();
-    saveCurrentUser({ ...current, name: profile.name || current.name, username: profile.username || current.username });
+    saveCurrentUser({ ...current, ...profile, avatar: profile.avatar_url || '' });
   } catch (e) { console.warn('Не удалось загрузить профиль из Supabase', e); }
 }
 async function backendUpdateUsername(username) {

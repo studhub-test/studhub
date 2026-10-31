@@ -39,9 +39,9 @@ grant delete on public.messages to authenticated;
 -- от того, что видит представление public_profiles. Отдают только публичные поля.
 drop function if exists public.chat_find_profiles(text, integer);
 create or replace function public.chat_find_profiles(q text default '', lim integer default 8)
-returns table (id uuid, name text, username text, subtitle text, bio text, city text, campus text, interests text, created_at timestamptz)
+returns table (id uuid, name text, username text, subtitle text, bio text, city text, campus text, interests text, created_at timestamptz, avatar_url text)
 language sql stable security definer set search_path = public as $$
-  select p.id, p.name, p.username, p.subtitle, p.bio, p.city, p.campus, p.interests, p.created_at
+  select p.id, p.name, p.username, p.subtitle, p.bio, p.city, p.campus, p.interests, p.created_at, p.avatar_url
   from public.profiles p
   where p.id <> auth.uid()
     and (btrim(coalesce(q, '')) = ''
@@ -54,9 +54,9 @@ revoke all on function public.chat_find_profiles(text, integer) from public, ano
 grant execute on function public.chat_find_profiles(text, integer) to authenticated;
 
 create or replace function public.chat_get_profiles(ids uuid[])
-returns table (id uuid, name text, username text, subtitle text, bio text, city text, campus text, interests text, created_at timestamptz)
+returns table (id uuid, name text, username text, subtitle text, bio text, city text, campus text, interests text, created_at timestamptz, avatar_url text)
 language sql stable security definer set search_path = public as $$
-  select p.id, p.name, p.username, p.subtitle, p.bio, p.city, p.campus, p.interests, p.created_at
+  select p.id, p.name, p.username, p.subtitle, p.bio, p.city, p.campus, p.interests, p.created_at, p.avatar_url
   from public.profiles p
   where p.id = any(ids)
   limit 50

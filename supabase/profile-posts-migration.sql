@@ -11,7 +11,15 @@ alter table public.profiles add column if not exists interests text not null def
 create or replace view public.public_profiles as
 select id, name, username, subtitle, bio, city, campus, interests, created_at
 from public.profiles;
+alter view public.public_profiles set (security_invoker = true);
 grant select on public.public_profiles to anon, authenticated;
+
+-- Required by security_invoker: public profile fields are readable under caller RLS.
+drop policy if exists profiles_public_read on public.profiles;
+create policy profiles_public_read on public.profiles for select to anon, authenticated using (true);
+revoke select on public.profiles from anon, authenticated;
+grant select (id, name, username, subtitle, bio, city, campus, interests, created_at, avatar_url)
+  on public.profiles to anon, authenticated;
 grant update (name, username, subtitle, bio, city, campus, interests) on public.profiles to authenticated;
 
 create table if not exists public.user_posts (

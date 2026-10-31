@@ -24,7 +24,7 @@ function profilePostCard(p, own) {
   const author = p.author || p.author_name || 'Студент';
   const ts = p.ts || (p.created_at ? Date.parse(p.created_at) : Date.now());
   const id = String(p.id);
-  return `<article class="post-card" data-profile-post-id="${escapeHtml(id)}"><div class="post-header"><div class="post-author"><div class="post-avatar green">${escapeHtml(getInitials(author))}</div><div class="post-meta"><span class="post-community">${escapeHtml(author)}</span><span class="post-info">${escapeHtml(ago(ts))}</span></div></div>${own ? `<button class="btn-more" title="Удалить" onclick="deletePost('${escapeHtml(id)}')">🗑</button>` : ''}</div><div class="post-tag green">${escapeHtml(p.tag || 'Пост')}</div><h2 class="post-title">${escapeHtml(p.title || '')}</h2><p class="post-text" style="white-space:pre-wrap">${escapeHtml(p.text || '')}</p><div class="post-footer">${voteBox('post-' + id, 0)}${commentBtn('post-' + id, 0)}</div>${commentsBox('post-' + id)}</article>`;
+  return `<article class="post-card" data-profile-post-id="${escapeHtml(id)}"><div class="post-header"><div class="post-author"><div class="post-avatar green" style="${p.avatar_url ? `background-image:url(&quot;${escapeHtml(p.avatar_url)}&quot;);` : ''}">${p.avatar_url ? '' : escapeHtml(getInitials(author))}</div><div class="post-meta"><span class="post-community">${escapeHtml(author)}</span><span class="post-info">${escapeHtml(ago(ts))}</span></div></div>${own ? `<button class="btn-more" title="Удалить" onclick="deletePost('${escapeHtml(id)}')">🗑</button>` : ''}</div><div class="post-tag green">${escapeHtml(p.tag || 'Пост')}</div><h2 class="post-title">${escapeHtml(p.title || '')}</h2><p class="post-text" style="white-space:pre-wrap">${escapeHtml(p.text || '')}</p><div class="post-footer">${voteBox('post-' + id, 0)}${commentBtn('post-' + id, 0)}</div>${commentsBox('post-' + id)}</article>`;
 }
 async function loadProfilePosts() {
   if (BACKEND && sb) {
@@ -41,7 +41,7 @@ async function loadProfilePosts() {
           rows = await ok(need().from('user_posts').select('id, owner_id, title, body, tag, created_at').eq('owner_id', uid).order('created_at', { ascending: false }).limit(100));
         }
       }
-      return rows;
+      return rows.map(r => ({ ...r, avatar_url: (viewingProfile || getCurrentUser()).avatar_url || '' }));
     } catch (e) {
       console.error('Не удалось загрузить публикации профиля', e);
       showToast('Не удалось загрузить публикации из базы данных', 'error');
@@ -57,7 +57,7 @@ async function renderProfileTab() {
   const own = !viewingProfile || viewingProfile.id === activeUserId();
   const empty = (title, desc) => `<div class="empty-state" style="margin-bottom:20px"><div class="empty-state-title">${title}</div><div class="empty-state-desc" style="margin-bottom:0">${desc}</div></div>`;
   if (profileTab === 'posts') {
-    box.innerHTML = own ? `<div class="composer"><div class="composer-avatar">${escapeHtml(getInitials(user.name))}</div><div style="flex:1;font-size:14px;color:var(--muted)">О чём хотите рассказать?</div><button class="btn-submit" onclick="openPostModal()">Создать пост</button></div><div class="profile-posts-list">Загружаем публикации…</div>` : '<div class="profile-posts-list">Загружаем публикации…</div>';
+    box.innerHTML = own ? `<div class="composer"><div class="composer-avatar" style="${user.avatar_url ? `background-image:url(&quot;${escapeHtml(user.avatar_url)}&quot;);` : ''}">${user.avatar_url ? '' : escapeHtml(getInitials(user.name))}</div><div style="flex:1;font-size:14px;color:var(--muted)">О чём хотите рассказать?</div><button class="btn-submit" onclick="openPostModal()">Создать пост</button></div><div class="profile-posts-list">Загружаем публикации…</div>` : '<div class="profile-posts-list">Загружаем публикации…</div>';
     const posts = await loadProfilePosts(); profilePostsCache = posts;
     const list = box.querySelector('.profile-posts-list');
     if (list) list.innerHTML = posts.length ? posts.map(p => {
@@ -83,6 +83,7 @@ async function submitPost() {
   if (viewingProfile) return;
   const titleEl = document.getElementById('postTitle'), textEl = document.getElementById('postText');
   const title = titleEl.value.trim(), body = textEl.value.trim(), tag = document.getElementById('postTag').value;
+  if (title.length < 1 || title.length > 160 || body.length > 10000 || tag.length > 40) { showToast('Превышен лимит длины публикации', 'error'); return; }
   if (!title) { showToast('Введите заголовок', 'error'); return; }
   if (BACKEND && sb) {
     if (!activeUserId()) { showToast('Войдите в аккаунт, чтобы опубликовать пост', 'error'); return; }

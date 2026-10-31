@@ -106,6 +106,8 @@ const name = document.getElementById('projName').value.trim();
 const desc = document.getElementById('projDesc').value.trim();
 const goal = Math.floor(+document.getElementById('projGoal').value);
 const days = +document.getElementById('projDays').value;
+if (name.length < 1 || name.length > 120) { showToast('Название проекта: максимум 120 символов', 'error'); return; }
+if (desc.length > 5000) { showToast('Описание проекта: максимум 5000 символов', 'error'); return; }
 if (!name) { showToast('Введите название проекта', 'error'); return; }
 if (!(goal >= 1000 && goal <= 1000000)) { showToast('Цель сбора: от 1 000 до 1 000 000 ₽', 'error'); return; }
 const rewards = readRewards();

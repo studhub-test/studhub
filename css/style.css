@@ -447,3 +447,10 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .disc-thread-composer-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}.disc-thread-composer-footer>span{font-size:10px;color:var(--muted);line-height:1.4}.disc-thread-composer-footer .btn-submit{display:flex;align-items:center;gap:8px;white-space:nowrap}.disc-thread-composer-footer .btn-submit span{font-size:16px}
 .disc-action.disc-open-thread{color:var(--accent);font-weight:650}
 @media(max-width:600px){.disc-thread-overlay{padding:0;align-items:flex-end}.disc-thread-modal{width:100%;max-width:none!important;max-height:94dvh;height:92dvh;border-radius:20px 20px 0 0}.disc-thread-modal-body{padding:17px 15px}.disc-thread-composer-wrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom));gap:8px}.disc-thread-composer-avatar,.disc-thread-reply-avatar{width:31px;height:31px;flex-basis:31px}.disc-thread-composer{padding:9px}.disc-thread-composer textarea{font-size:16px;min-height:48px}.disc-thread-composer-footer{align-items:flex-end}.disc-thread-composer-footer>span{max-width:125px}.disc-thread-composer-footer .btn-submit{font-size:12px;padding:10px 12px}.disc-thread-topic h2{font-size:20px}.disc-thread-reply-content{padding:10px 11px}}
+
+/* User-uploaded avatars */
+.user-avatar, .profile-avatar-large, .composer-avatar, .post-avatar {
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
