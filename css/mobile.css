@@ -55,4 +55,17 @@
   .tabs-row .tab-btn { white-space:nowrap; flex-shrink:0; }
 }
 @media (max-width: 380px) { .wallet-chip svg { display:none; } .header-icon { width:36px; height:36px; } }
+
+@media (max-width: 600px) {
+  /* На смартфонах поиск занимает отдельную строку — поле не сжимается между иконками. */
+  .header { height:auto; min-height:64px; flex-wrap:wrap; padding:8px 12px 10px; row-gap:8px; }
+  .header-left { order:1; }
+  .header-right { order:2; margin-left:auto; }
+  .header-center { order:3; flex:0 0 100%; width:100%; max-width:none; margin:0; }
+  .search-bar { width:100%; height:42px; }
+  .search-results { position:absolute; top:48px; left:0; right:0; width:100%; max-height:min(60vh,420px); overflow-y:auto; overscroll-behavior:contain; }
+  .search-result-item { min-height:54px; padding:10px 12px; touch-action:manipulation; }
+  .search-result-title, .search-result-sub { overflow-wrap:anywhere; }
+}
+
 @media (display-mode: standalone) { .header { padding-top:env(safe-area-inset-top); height:calc(64px + env(safe-area-inset-top)); } }

@@ -111,21 +111,28 @@ async function backendUploadAvatar(file) {
     if (file.size > 2 * 1024 * 1024) throw new Error('Аватар должен быть не больше 2 МБ');
     const uid = activeUserId();
     if (!uid) throw new Error('not_authenticated');
+    if (!sb) throw new Error('Supabase не подключён. Аватар не сохранён.');
     const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' })[file.type];
-    const path = `${uid}/avatar.${ext}`;
+    // Уникальное имя исключает ситуацию, когда CDN продолжает отдавать старый файл из кеша.
+    const path = `${uid}/avatar-${Date.now()}.${ext}`;
     const storage = need().storage.from('avatars');
-    const { error: uploadError } = await storage.upload(path, file, { upsert: true, contentType: file.type, cacheControl: '3600' });
+    const { error: uploadError } = await storage.upload(path, file, { upsert: false, contentType: file.type, cacheControl: '0' });
     if (uploadError) throw uploadError;
     const { data } = storage.getPublicUrl(path);
+    if (!data || !data.publicUrl) throw new Error('Supabase не вернул публичную ссылку на аватар');
     return { url: data.publicUrl };
   } catch (error) { return { error }; }
 }
+
 async function backendSavePublicProfile(user) {
   try {
     const fields = { name: String(user.name || 'Студент').trim().slice(0, 40), username: String(user.username || '').toLowerCase(), subtitle: String(user.subtitle || '').slice(0, 120), bio: String(user.bio || '').slice(0, 1000), city: String(user.city || '').slice(0, 100), campus: String(user.campus || '').slice(0, 80), interests: String(user.interests || '').slice(0, 500) };
     if (user.avatar_url) fields.avatar_url = user.avatar_url;
-    const { error } = await need().from('profiles').update(fields).eq('id', activeUserId());
-    return error ? { error } : { ok: true };
+    if (!sb || !activeUserId()) throw new Error('not_authenticated');
+    const { data, error } = await need().from('profiles').update(fields).eq('id', activeUserId()).select('id').maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error('Профиль не найден в базе данных');
+    return { ok: true };
   } catch (error) { return { error }; }
 }
 async function backendSearchProfiles(query) {
@@ -162,6 +169,20 @@ async function syncProfileFromDatabase(user) {
   try {
     const profile = await ok(need().from('profiles').select('name, username, avatar_url, subtitle, bio, city, campus, interests').eq('id', user.id).single());
     const current = getCurrentUser();
+    // Однократно переносим старую локальную base64-аватарку в Supabase Storage.
+    if (!profile.avatar_url && typeof current.avatar === 'string' && current.avatar.startsWith('data:image/')) {
+      try {
+        const response = await fetch(current.avatar);
+        const blob = await response.blob();
+        const ext = (blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+        const file = new File([blob], `avatar.${ext}`, { type: blob.type || 'image/png' });
+        const uploaded = await backendUploadAvatar(file);
+        if (uploaded.url) {
+          const saved = await backendSavePublicProfile({ ...current, avatar_url: uploaded.url });
+          if (!saved.error) profile.avatar_url = uploaded.url;
+        }
+      } catch (migrationError) { console.warn('Не удалось перенести локальную аватарку в Supabase', migrationError); }
+    }
     saveCurrentUser({ ...current, ...profile, avatar: profile.avatar_url || '' });
   } catch (e) { console.warn('Не удалось загрузить профиль из Supabase', e); }
 }
