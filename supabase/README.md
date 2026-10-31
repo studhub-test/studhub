@@ -24,3 +24,8 @@
 - удалите функцию `demo_topup` (сейчас любой пользователь может «пополнить» виртуальный кошелёк);
 - пополнение должен делать вебхук ЮKassa/CloudPayments через Edge Function с ключом `service_role`;
 - оформите самозанятость/ИП и оферту.
+
+
+## Общие аватарки
+
+После `schema.sql` и `profile-posts-migration.sql` выполните `avatar-public-profiles-migration.sql`. Миграция добавляет `profiles.avatar_url`, публичный Storage bucket `avatars`, политики загрузки только в собственную папку и выдачу URL в публичных профилях/поиске/чате.

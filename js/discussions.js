@@ -43,7 +43,6 @@ function discCommentsBox(d){return '';}
 function openDiscModal(){['discTitle','discText'].forEach(i=>document.getElementById(i).value='');document.getElementById('discCat').value='Вопросы';openModal('discModal');setTimeout(()=>document.getElementById('discTitle').focus(),80)}
 async function submitDiscussion(){
  const title=document.getElementById('discTitle').value.trim(),body=document.getElementById('discText').value.trim(),cat=document.getElementById('discCat').value;
-  if (title.length < 4 || title.length > 120 || body.length > 5000) { showToast('Заголовок: 4–120 символов, текст: максимум 5000', 'error'); return; }
  if(title.length<4){showToast('Заголовок должен содержать минимум 4 символа','error');return}if(title.length>120||body.length>5000){showToast('Слишком длинный текст','error');return}
  if(BACKEND){
   if(!sb||!activeUserId()){showToast('Войдите в аккаунт, чтобы создавать обсуждения','error');return}
@@ -86,7 +85,7 @@ async function loadDiscReplies(id,threadMode=false){
 }
 async function submitDiscReply(id){
  const threadMode=!!(activeDiscThread&&String(activeDiscThread)===String(id)&&document.getElementById('discThreadModal')?.classList.contains('show'));
- const input=document.getElementById(threadMode?'discThreadReply':'discReply-'+id),body=input&&input.value.trim();if(!body)return;if(body.length>1000){showToast('Ответ: максимум 1000 символов','error');return;}
+ const input=document.getElementById(threadMode?'discThreadReply':'discReply-'+id),body=input&&input.value.trim();if(!body)return;
  if(body.length>1000){showToast('Ответ слишком длинный','error');return}
  const btn=document.getElementById('discThreadSend');if(threadMode&&btn){btn.disabled=true;btn.textContent='Отправляем…'}
  if(BACKEND){if(!activeUserId()){showToast('Войдите в аккаунт, чтобы отвечать','error');if(threadMode&&btn){btn.disabled=false;btn.textContent='Отправить ответ'}return}try{const {error}=await sb.from('discussion_comments').insert({discussion_id:id,body});if(error)throw error;input.value='';await loadDiscReplies(id,threadMode);renderDiscussions();showToast('Ответ добавлен','success')}catch(e){showToast(typeof backendErrorText==='function'?backendErrorText(e):'Не удалось отправить ответ','error')}finally{if(threadMode&&btn){btn.disabled=false;btn.textContent='Отправить ответ'}}return}

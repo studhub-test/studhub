@@ -105,34 +105,24 @@ async function refreshLive() { // фоновое обновление: чужи�
 }
 
 /* ---------- Профили и публикации ---------- */
-async function backendUploadAvatar(file) {
+async function backendSavePublicProfile(user, avatarFile = null) {
   try {
-    if (!file || !/^image\/(png|jpeg|webp|gif)$/.test(file.type)) throw new Error('Формат аватарки: PNG, JPG, WEBP или GIF');
-    if (file.size > 2 * 1024 * 1024) throw new Error('Аватар должен быть не больше 2 МБ');
     const uid = activeUserId();
-    if (!uid) throw new Error('not_authenticated');
-    if (!sb) throw new Error('Supabase не подключён. Аватар не сохранён.');
-    const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' })[file.type];
-    // Уникальное имя исключает ситуацию, когда CDN продолжает отдавать старый файл из кеша.
-    const path = `${uid}/avatar-${Date.now()}.${ext}`;
-    const storage = need().storage.from('avatars');
-    const { error: uploadError } = await storage.upload(path, file, { upsert: false, contentType: file.type, cacheControl: '0' });
-    if (uploadError) throw uploadError;
-    const { data } = storage.getPublicUrl(path);
-    if (!data || !data.publicUrl) throw new Error('Supabase не вернул публичную ссылку на аватар');
-    return { url: data.publicUrl };
-  } catch (error) { return { error }; }
-}
-
-async function backendSavePublicProfile(user) {
-  try {
-    const fields = { name: String(user.name || 'Студент').trim().slice(0, 40), username: String(user.username || '').toLowerCase(), subtitle: String(user.subtitle || '').slice(0, 120), bio: String(user.bio || '').slice(0, 1000), city: String(user.city || '').slice(0, 100), campus: String(user.campus || '').slice(0, 80), interests: String(user.interests || '').slice(0, 500) };
-    if (user.avatar_url) fields.avatar_url = user.avatar_url;
-    if (!sb || !activeUserId()) throw new Error('not_authenticated');
-    const { data, error } = await need().from('profiles').update(fields).eq('id', activeUserId()).select('id').maybeSingle();
-    if (error) throw error;
-    if (!data) throw new Error('Профиль не найден в базе данных');
-    return { ok: true };
+    if (!uid) return { error: new Error('not_authenticated') };
+    const fields = { name: String(user.name || 'Студент').slice(0, 40), username: String(user.username || '').toLowerCase(), subtitle: String(user.subtitle || '').slice(0, 120), bio: String(user.bio || '').slice(0, 1000), city: String(user.city || '').slice(0, 100), campus: String(user.campus || '').slice(0, 80), interests: String(user.interests || '').slice(0, 500) };
+    if (avatarFile) {
+      if (!avatarFile.type || !/^image\/(png|jpeg|webp|gif)$/.test(avatarFile.type)) return { error: new Error('Поддерживаются PNG, JPG, WEBP и GIF') };
+      if (avatarFile.size > 2 * 1024 * 1024) return { error: new Error('Аватар должен быть не больше 2 МБ') };
+      const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' })[avatarFile.type];
+      const path = `${uid}/avatar.${ext}`;
+      const { error: uploadError } = await need().storage.from('avatars').upload(path, avatarFile, { upsert: true, contentType: avatarFile.type, cacheControl: '3600' });
+      if (uploadError) return { error: uploadError };
+      const { data } = need().storage.from('avatars').getPublicUrl(path);
+      fields.avatar_url = data.publicUrl + (data.publicUrl.includes('?') ? '&' : '?') + 'v=' + Date.now();
+    }
+    const { error } = await need().from('profiles').update(fields).eq('id', uid);
+    if (error) return { error };
+    return { ok: true, avatar_url: fields.avatar_url || user.avatar_url || null };
   } catch (error) { return { error }; }
 }
 async function backendSearchProfiles(query) {
@@ -141,7 +131,7 @@ async function backendSearchProfiles(query) {
   try {
     const viaFn = await need().rpc('chat_find_profiles', { q, lim: 8 });   // функция из supabase/chat.sql, не зависит от прав на public_profiles
     if (!viaFn.error) return viaFn.data || [];
-    const select = 'id,name,username,avatar_url,subtitle,bio,city,campus,interests,created_at';
+    const select = 'id,name,username,subtitle,bio,city,campus,interests,avatar_url,created_at';
     const [byUsername, byName] = await Promise.all([
       ok(need().from('public_profiles').select(select).ilike('username', `%${q}%`).limit(8)),
       ok(need().from('public_profiles').select(select).ilike('name', `%${q}%`).limit(8)),
@@ -167,23 +157,28 @@ async function backendInit() {
 }
 async function syncProfileFromDatabase(user) {
   try {
-    const profile = await ok(need().from('profiles').select('name, username, avatar_url, subtitle, bio, city, campus, interests').eq('id', user.id).single());
+    const profile = await ok(need().from('profiles').select('name, username, subtitle, bio, city, campus, interests, avatar_url').eq('id', user.id).single());
     const current = getCurrentUser();
-    // Однократно переносим старую локальную base64-аватарку в Supabase Storage.
+    // Переносим старую локальную Data URL-аватарку в Storage один раз, если в БД её ещё нет.
     if (!profile.avatar_url && typeof current.avatar === 'string' && current.avatar.startsWith('data:image/')) {
       try {
-        const response = await fetch(current.avatar);
-        const blob = await response.blob();
-        const ext = (blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
-        const file = new File([blob], `avatar.${ext}`, { type: blob.type || 'image/png' });
-        const uploaded = await backendUploadAvatar(file);
-        if (uploaded.url) {
-          const saved = await backendSavePublicProfile({ ...current, avatar_url: uploaded.url });
-          if (!saved.error) profile.avatar_url = uploaded.url;
+        const blob = await (await fetch(current.avatar)).blob();
+        const type = blob.type || 'image/png';
+        const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' })[type];
+        if (ext && blob.size <= 2 * 1024 * 1024) {
+          const file = new File([blob], `avatar.${ext}`, { type });
+          const path = `${user.id}/avatar.${ext}`;
+          const { error: uploadError } = await need().storage.from('avatars').upload(path, file, { upsert: true, contentType: type, cacheControl: '3600' });
+          if (!uploadError) {
+            const { data } = need().storage.from('avatars').getPublicUrl(path);
+            profile.avatar_url = data.publicUrl + '?v=' + Date.now();
+            const { error: updateError } = await need().from('profiles').update({ avatar_url: profile.avatar_url }).eq('id', user.id);
+            if (updateError) console.warn('Не удалось сохранить URL перенесённой аватарки', updateError);
+          } else console.warn('Не удалось перенести старую аватарку в Storage', uploadError);
         }
-      } catch (migrationError) { console.warn('Не удалось перенести локальную аватарку в Supabase', migrationError); }
+      } catch (migrationError) { console.warn('Не удалось перенести локальную аватарку', migrationError); }
     }
-    saveCurrentUser({ ...current, ...profile, avatar: profile.avatar_url || '' });
+    saveCurrentUser({ ...current, ...profile, name: profile.name || current.name, username: profile.username || current.username });
   } catch (e) { console.warn('Не удалось загрузить профиль из Supabase', e); }
 }
 async function backendUpdateUsername(username) {

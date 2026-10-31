@@ -338,12 +338,12 @@
 <div class="modal">
 <div class="modal-header"><div class="modal-title">Создать проект</div><button class="modal-close" onclick="closeCreateModal()">✕</button></div>
 <div class="modal-body">
-<div class="form-group"><label class="form-label">Название проекта *</label><input class="form-input" id="projName" placeholder="Например: Карта тихих мест" maxlength="120"></div>
-<div class="form-group"><label class="form-label">Описание</label><textarea class="form-textarea" id="projDesc" placeholder="Расскажите о проекте, его целях и задачах..." maxlength="5000"></textarea></div>
+<div class="form-group"><label class="form-label">Название проекта *</label><input class="form-input" id="projName" placeholder="Например: Карта тихих мест"></div>
+<div class="form-group"><label class="form-label">Описание</label><textarea class="form-textarea" id="projDesc" placeholder="Расскажите о проекте, его целях и задачах..."></textarea></div>
 <div class="form-group"><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><label class="form-label">Цель сбора, ₽ *</label><input class="form-input" id="projGoal" type="number" min="1000" max="1000000" placeholder="Например: 20000"></div><div><label class="form-label">Срок сбора</label><select class="form-select" id="projDays"><option value="14">14 дней</option><option value="30" selected>30 дней</option><option value="45">45 дней</option><option value="60">60 дней</option></select></div></div></div>
 <div class="form-group"><label class="form-label">Категория</label><select class="form-select" id="projCategory"></select></div>
 <div class="form-group"><label class="form-label">Награды за поддержку <span style="font-weight:400;color:var(--muted)">(до 3 уровней, пустую строку можно оставить)</span></label>
-<div class="rw-edit"><div class="rw-row"><input class="form-input" id="rwAmt0" type="number" min="50" placeholder="₽"><input class="form-input" id="rwTitle0" maxlength="60" placeholder="Название награды" maxlength="60"><input class="form-input rw-desc" id="rwDesc0" maxlength="140" placeholder="Что получит поддержавший" maxlength="140"></div><div class="rw-row"><input class="form-input" id="rwAmt1" type="number" min="50" placeholder="₽"><input class="form-input" id="rwTitle1" maxlength="60" placeholder="Название награды"><input class="form-input rw-desc" id="rwDesc1" maxlength="140" placeholder="Что получит поддержавший"></div><div class="rw-row"><input class="form-input" id="rwAmt2" type="number" min="50" placeholder="₽"><input class="form-input" id="rwTitle2" maxlength="60" placeholder="Название награды"><input class="form-input rw-desc" id="rwDesc2" maxlength="140" placeholder="Что получит поддержавший"></div></div></div>
+<div class="rw-edit"><div class="rw-row"><input class="form-input" id="rwAmt0" type="number" min="50" placeholder="₽"><input class="form-input" id="rwTitle0" maxlength="60" placeholder="Название награды"><input class="form-input rw-desc" id="rwDesc0" maxlength="140" placeholder="Что получит поддержавший"></div><div class="rw-row"><input class="form-input" id="rwAmt1" type="number" min="50" placeholder="₽"><input class="form-input" id="rwTitle1" maxlength="60" placeholder="Название награды"><input class="form-input rw-desc" id="rwDesc1" maxlength="140" placeholder="Что получит поддержавший"></div><div class="rw-row"><input class="form-input" id="rwAmt2" type="number" min="50" placeholder="₽"><input class="form-input" id="rwTitle2" maxlength="60" placeholder="Название награды"><input class="form-input rw-desc" id="rwDesc2" maxlength="140" placeholder="Что получит поддержавший"></div></div></div>
 <div class="form-group"><label class="form-label">Статус <span style="font-weight:400;color:var(--muted)">(публикуются только «Активные»)</span></label><div style="display:flex;gap:8px;"><button class="tab-btn active" data-status="active" onclick="selectStatus(this)">Активный</button><button class="tab-btn" data-status="draft" onclick="selectStatus(this)">Черновик</button><button class="tab-btn" data-status="done" onclick="selectStatus(this)">Завершён</button></div></div>
 <div class="form-group"><label class="form-label">Теги</label><div class="form-tags" id="tagContainer"><span class="form-tag" data-tag="веб-разработка" onclick="toggleTag(this)">веб-разработка</span><span class="form-tag" data-tag="дизайн" onclick="toggleTag(this)">дизайн</span><span class="form-tag" data-tag="мобильное" onclick="toggleTag(this)">мобильное</span><span class="form-tag" data-tag="бот" onclick="toggleTag(this)">бот</span><span class="form-tag" data-tag="хакатон" onclick="toggleTag(this)">хакатон</span><span class="form-tag" data-tag="учёба" onclick="toggleTag(this)">учёба</span></div></div>
 </div>
@@ -376,13 +376,13 @@
 <div class="modal-header"><div class="modal-title">Редактировать профиль</div><button class="modal-close" onclick="closeEditProfileModal()">✕</button></div>
 <div class="modal-body">
 <div class="form-group"><label class="form-label">Аватар</label><input class="form-input" type="file" id="editProfileAvatar" accept="image/*"><div style="font-size:12px;color:var(--muted);margin-top:5px;">Загрузите изображение с устройства.</div></div>
-<div class="form-group"><label class="form-label">Имя и фамилия</label><input class="form-input" id="editProfileName" placeholder="Ваше имя" maxlength="40"></div>
-<div class="form-group"><label class="form-label">Подзаголовок</label><input class="form-input" id="editProfileSubtitle" placeholder="Например: КИТиС · 1 курс · Калининград" maxlength="120"></div>
-<div class="form-group"><label class="form-label">О себе</label><textarea class="form-textarea" id="editProfileBio" placeholder="Расскажите о себе..." maxlength="1000"></textarea></div>
+<div class="form-group"><label class="form-label">Имя и фамилия</label><input class="form-input" id="editProfileName" placeholder="Ваше имя"></div>
+<div class="form-group"><label class="form-label">Подзаголовок</label><input class="form-input" id="editProfileSubtitle" placeholder="Например: КИТиС · 1 курс · Калининград"></div>
+<div class="form-group"><label class="form-label">О себе</label><textarea class="form-textarea" id="editProfileBio" placeholder="Расскажите о себе..."></textarea></div>
 <div class="form-group"><label class="form-label">Никнейм</label><input class="form-input" id="editProfileUsername" placeholder="@username"></div>
-<div class="form-group"><label class="form-label">Город</label><input class="form-input" id="editProfileCity" placeholder="Например, Калининград" maxlength="100"></div>
+<div class="form-group"><label class="form-label">Город</label><input class="form-input" id="editProfileCity" placeholder="Например, Калининград"></div>
 <div class="form-group"><label class="form-label">Учебное заведение</label><select class="form-select" id="editProfileCampus"><option value="kitis">КИТиС — Калининград</option><option value="bfu">БФУ им. Канта</option><option value="other">Другое</option></select></div>
-<div class="form-group"><label class="form-label">Интересы (через запятую)</label><input class="form-input" id="editProfileInterests" placeholder="Веб-разработка, Дизайн, React" maxlength="500"></div>
+<div class="form-group"><label class="form-label">Интересы (через запятую)</label><input class="form-input" id="editProfileInterests" placeholder="Веб-разработка, Дизайн, React"></div>
 </div>
 <div class="modal-footer"><button class="btn-cancel" onclick="closeEditProfileModal()">Отмена</button><button class="btn-submit" onclick="saveProfile()">Сохранить изменения</button></div>
 </div>
@@ -394,7 +394,7 @@
 <div class="modal-body">
 <div class="form-group"><label class="form-label">Заголовок *</label><input class="form-input" id="discTitle" maxlength="120" placeholder="О чём хотите поговорить?"></div>
 <div class="form-group"><label class="form-label">Категория</label><select class="form-select" id="discCat"></select></div>
-<div class="form-group"><label class="form-label">Текст</label><textarea class="form-textarea" id="discText" placeholder="Подробности..." maxlength="5000"></textarea></div>
+<div class="form-group"><label class="form-label">Текст</label><textarea class="form-textarea" id="discText" placeholder="Подробности..."></textarea></div>
 </div>
 <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('discModal')">Отмена</button><button class="btn-submit" onclick="submitDiscussion()">Опубликовать</button></div>
 </div></div>
@@ -410,9 +410,9 @@
 <div class="modal-overlay" id="postModal"><div class="modal">
 <div class="modal-header"><div class="modal-title">Новый пост</div><button class="modal-close" onclick="closeModal('postModal')">✕</button></div>
 <div class="modal-body">
-<div class="form-group"><label class="form-label">Заголовок *</label><input class="form-input" id="postTitle" maxlength="160"></div>
+<div class="form-group"><label class="form-label">Заголовок *</label><input class="form-input" id="postTitle" maxlength="120"></div>
 <div class="form-group"><label class="form-label">Тема</label><select class="form-select" id="postTag"><option>Заметка</option><option>Идея</option><option>Новости</option><option>Вопрос</option></select></div>
-<div class="form-group"><label class="form-label">Текст</label><textarea class="form-textarea" id="postText" maxlength="10000"></textarea></div>
+<div class="form-group"><label class="form-label">Текст</label><textarea class="form-textarea" id="postText"></textarea></div>
 </div>
 <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('postModal')">Отмена</button><button class="btn-submit" onclick="submitPost()">Опубликовать</button></div>
 </div></div>
@@ -425,7 +425,7 @@
 <div class="wallet-line"><span><span data-i18n="w.balance.short">Баланс кошелька: </span><b id="supportBalance">0 ₽</b></span><a onclick="openTopUp()" data-i18n="w.topup">Пополнить</a></div>
 <div id="supportRewards"></div><div class="form-label">Сумма</div><div class="amount-chips" id="amountChips"></div>
 <div class="form-group"><input class="form-input" type="number" min="50" id="supportAmount" placeholder="Или своя сумма, ₽" oninput="syncChips()"></div>
-<div class="form-group"><label class="form-label">Сообщение автору (необязательно)</label><textarea class="form-textarea" id="supportMsg" style="min-height:70px" maxlength="140"></textarea></div>
+<div class="form-group"><label class="form-label">Сообщение автору (необязательно)</label><textarea class="form-textarea" id="supportMsg" style="min-height:70px"></textarea></div>
 <label style="font-size:13px;display:flex;gap:8px;align-items:center;"><input type="checkbox" id="supportAnon"> Поддержать анонимно</label>
 <p style="font-size:12px;color:var(--muted-2);margin-top:12px;line-height:1.5;">Демо-режим: деньги списываются только с виртуального кошелька. Для настоящих платежей нужен платёжный провайдер (ЮKassa, CloudPayments и т.п.) и серверная часть.</p>
 </div>

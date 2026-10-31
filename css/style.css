@@ -13,7 +13,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .search-bar svg { width: 18px; height: 18px; fill: var(--muted); flex-shrink: 0; }
 .search-results { position: absolute; top: 48px; left: 0; right: 0; background: var(--surface); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); max-height: 400px; overflow-y: auto; z-index: 300; display: none; border: 1px solid var(--border); }
 .search-results.show { display: block; }
-.search-result-item { width:100%; display:flex; align-items:center; gap:12px; padding:12px 16px; cursor:pointer; transition:background .15s; text-align:left; border:0; background:transparent; color:inherit; font:inherit; -webkit-tap-highlight-color:transparent; }
+.search-result-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; transition: background 0.15s; }
 .search-result-item:hover { background: var(--surface-3); }
 .search-result-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; font-weight: 600; }
 .search-result-info { flex: 1; }
@@ -447,10 +447,3 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .disc-thread-composer-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}.disc-thread-composer-footer>span{font-size:10px;color:var(--muted);line-height:1.4}.disc-thread-composer-footer .btn-submit{display:flex;align-items:center;gap:8px;white-space:nowrap}.disc-thread-composer-footer .btn-submit span{font-size:16px}
 .disc-action.disc-open-thread{color:var(--accent);font-weight:650}
 @media(max-width:600px){.disc-thread-overlay{padding:0;align-items:flex-end}.disc-thread-modal{width:100%;max-width:none!important;max-height:94dvh;height:92dvh;border-radius:20px 20px 0 0}.disc-thread-modal-body{padding:17px 15px}.disc-thread-composer-wrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom));gap:8px}.disc-thread-composer-avatar,.disc-thread-reply-avatar{width:31px;height:31px;flex-basis:31px}.disc-thread-composer{padding:9px}.disc-thread-composer textarea{font-size:16px;min-height:48px}.disc-thread-composer-footer{align-items:flex-end}.disc-thread-composer-footer>span{max-width:125px}.disc-thread-composer-footer .btn-submit{font-size:12px;padding:10px 12px}.disc-thread-topic h2{font-size:20px}.disc-thread-reply-content{padding:10px 11px}}
-
-/* User-uploaded avatars */
-.user-avatar, .profile-avatar-large, .composer-avatar, .post-avatar {
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-}

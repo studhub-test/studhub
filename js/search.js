@@ -45,11 +45,11 @@ function paintSearchResults(raw) {
     searchResults.innerHTML = '<div class="search-empty">' + t('search.empty') + ' «' + escapeHtml(raw) + '»</div>';
   } else {
     searchResults.innerHTML = searchHits.slice(0, 8).map((r, i) => `
-<button type="button" class="search-result-item" data-search-index="${i}" aria-label="Открыть результат: ${escapeHtml(r.title)}">
+<div class="search-result-item" onmousedown="event.preventDefault();handleSearchResult(${i})">
 <div class="search-result-icon" style="background:${r.color};">${escapeHtml(r.icon)}</div>
 <div class="search-result-info"><div class="search-result-title">${escapeHtml(r.title)}</div><div class="search-result-sub">${escapeHtml(r.sub)}</div></div>
 <div class="search-result-type">${r.type}</div>
-</button>`).join('');
+</div>`).join('');
   }
   searchResults.classList.add('show');
 }
@@ -78,21 +78,12 @@ function handleSearchResult(idx) {
   searchInput.blur();
   if (hit && hit.action) hit.action();
 }
-searchResults.addEventListener('click', (event) => {
-  const item = event.target.closest('[data-search-index]');
-  if (!item) return;
-  handleSearchResult(Number(item.dataset.searchIndex));
-});
 searchInput.addEventListener('input', renderSearch);
 searchInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && searchHits.length) handleSearchResult(0); // Enter открывает первый результат
   if (e.key === 'Escape') { searchResults.classList.remove('show'); searchInput.blur(); }
 });
-// На телефонах пользователь должен успеть нажать на результат: скрываем список только
-// после реального выбора или ухода фокуса с задержкой, не перехватывая touch/click.
-searchInput.addEventListener('blur', () => { setTimeout(() => {
-  if (!searchResults.contains(document.activeElement)) searchResults.classList.remove('show');
-}, 350); });
+searchInput.addEventListener('blur', () => { setTimeout(() => searchResults.classList.remove('show'), 150); });
 searchInput.addEventListener('focus', () => { if (searchInput.value.trim().length >= 2) renderSearch(); });
 
 // Close modals on overlay click
