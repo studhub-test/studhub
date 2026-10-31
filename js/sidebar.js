@@ -81,6 +81,7 @@ function sbAddPeer(p) { if (!sbPeers.some(x => x.id === p.id)) sbPeers.push(p); 
 
 // Загрузка переписок: из базы или из браузера
 async function sbLoad() {
+  if (sbIsBackend() && !sbOnlineMode()) { sbPeers = []; sbThreads = {}; return false; }   // база ещё не готова — демо-людей не показываем
   if (!sbOnlineMode()) {
     sbPeers = SB_MEMBERS.slice(); const chats = lsGet('studhub_chats', {});
     sbThreads = {}; SB_MEMBERS.forEach(m => sbThreads[m.id] = (chats[m.id] || []).map(x => ({ mine: true, text: x.text, ts: x.ts })));
@@ -111,13 +112,48 @@ async function sbLoad() {
 }
 
 // Блок «Свои на связи» в правой колонке
+function sbIsBackend() { return typeof BACKEND !== 'undefined' && !!BACKEND; }
+function sbMemberHtml(p, sub, click, dot) {
+  return `<div class="online-member is-link" role="button" tabindex="0" onclick="${click}" onkeydown="if(event.key==='Enter'){${click}}"><div class="online-member-avatar" style="background:${p.bg};color:${p.fg};">${SB_ESC(p.ini)}${dot ? '<span class="online-dot-sm"></span>' : ''}</div><div style="flex:1;min-width:0"><div class="online-member-name">${SB_ESC(p.name)}</div><div class="online-member-role sb-clip" style="max-width:none">${SB_ESC(sub)}</div></div></div>`;
+}
 async function sbRefreshBlock() {
-  if (!sbOnlineMode() || !activeUserId()) return;
-  const box = document.getElementById('sbOnline'); if (!box) return;
-  await sbLoad();
-  const list = sbPeers.filter(p => (sbThreads[p.id] || []).length).slice(0, 4);
-  box.innerHTML = list.length ? list.map(p => { const last = sbThreads[p.id].slice(-1)[0]; return `<div class="online-member is-link" role="button" tabindex="0" onclick="openChat('${p.id}')" onkeydown="if(event.key==='Enter')openChat('${p.id}')"><div class="online-member-avatar" style="background:${p.bg};color:${p.fg};">${SB_ESC(p.ini)}</div><div style="flex:1;min-width:0"><div class="online-member-name">${SB_ESC(p.name)}</div><div class="online-member-role sb-clip">${SB_ESC(last.text)}</div></div></div>`; }).join('')
-    : '<div class="sb-empty" style="padding:12px 4px">Пока нет переписок. Нажмите «Открыть чат» и найдите студента по имени или @нику.</div>';
+  const box = document.getElementById('sbOnline'); if (!box || !activeUserId()) return;
+  if (!sbIsBackend()) {                       // демо-режим без Supabase: показываем вымышленных участников
+    const me = getCurrentUser(), mp = sbPeerFrom('me', me.name, 'Студент · ' + (me.campus === 'kitis' ? 'КИТиС' : 'StudHub'));
+    box.innerHTML = sbMemberHtml(mp, mp.role, `switchView('profile')`, true) + SB_MEMBERS.map(m => sbMemberHtml(m, m.role, `openChat('${m.id}')`, true)).join('');
+    return;
+  }
+  if (!sbOnlineMode()) return;                // клиент Supabase ещё не готов
+  const ok = await sbLoad();
+  if (!ok) { box.innerHTML = '<div class="sb-empty" style="padding:12px 4px">Чат не подключён к базе: выполните <b>supabase/chat.sql</b> в Supabase → SQL Editor.</div>'; return; }
+  let list = sbPeers.filter(p => (sbThreads[p.id] || []).length).slice(0, 4);
+  let html = list.map(p => sbMemberHtml(p, sbThreads[p.id].slice(-1)[0].text, `openChat('${p.id}')`, false)).join('');
+  if (list.length < 4) {                      // добираем реальных пользователей платформы, с которыми ещё нет переписки
+    const { rows } = await sbFindProfiles('', 8 + list.length);
+    const me = activeUserId(), have = new Set(list.map(p => p.id));
+    const more = rows.filter(r => r.id !== me && !have.has(r.id)).slice(0, 4 - list.length);
+    more.forEach(r => { const pp = sbPeerFrom(r.id, r.name, r.subtitle || (r.username ? '@' + r.username : 'Студент')); sbAddPeer(pp); html += sbMemberHtml(pp, pp.role, `openChat('${pp.id}')`, false); });
+  }
+  box.innerHTML = html || '<div class="sb-empty" style="padding:12px 4px">Пока здесь никого нет. Пригласите друзей на StudHub — они появятся в этом списке.</div>';
+}
+
+// Поиск профилей: пустой запрос — новые пользователи, иначе по имени или @нику. Ошибки не скрываем.
+async function sbFindProfiles(q, limit) {
+  const clean = String(q || '').trim().replace(/^@/, '').replace(/[%_\\]/g, '');
+  const sel = 'id,name,username,subtitle,created_at';
+  try {
+    if (!clean) {
+      const { data, error } = await sb.from('public_profiles').select(sel).order('created_at', { ascending: false }).limit(limit || 8);
+      return error ? { rows: [], error } : { rows: data || [] };
+    }
+    const [u, n] = await Promise.all([
+      sb.from('public_profiles').select(sel).ilike('username', `%${clean}%`).limit(8),
+      sb.from('public_profiles').select(sel).ilike('name', `%${clean}%`).limit(8)
+    ]);
+    const error = u.error || n.error; if (error) return { rows: [], error };
+    const m = new Map(); [...(u.data || []), ...(n.data || [])].forEach(r => m.set(r.id, r));
+    return { rows: [...m.values()].slice(0, 8) };
+  } catch (error) { return { rows: [], error }; }
 }
 
 function openMember(name) {
@@ -180,19 +216,25 @@ function sbSearchPeople(q) {
   clearTimeout(sbSearchT);
   const out = document.getElementById('chatFound');
   q = q.trim();
-  if (q.replace(/^@/, '').length < 2) { out.innerHTML = ''; return; }
+  if (!q) { out.innerHTML = ''; return; }
   sbSearchT = setTimeout(async () => {
-    const me = activeUserId();
-    const res = (await backendSearchProfiles(q)).filter(p => p.id !== me);
-    out.innerHTML = res.length ? res.map(p => `<div class="sb-person" onclick="sbStartWith('${p.id}','${SB_ESC(p.name).replace(/'/g, '')}','${SB_ESC(p.subtitle || '').replace(/'/g, '')}')"><div class="online-member-name">${SB_ESC(p.name)}${p.username ? ' <span style="color:var(--muted-2);font-weight:400">@' + SB_ESC(p.username) + '</span>' : ''}</div></div>`).join('') : '<div class="sb-empty" style="padding:8px">Никого не нашли</div>';
-  }, 300);
+    const { rows, error } = await sbFindProfiles(q);
+    if (error) { console.warn('Поиск профилей', error); out.innerHTML = '<div class="sb-empty" style="padding:8px">Поиск недоступен: выполните <b>supabase/profile-posts-migration.sql</b> в Supabase.</div>'; return; }
+    const me = activeUserId(), res = rows.filter(p => p.id !== me);
+    res.forEach(p => sbAddPeer(sbPeerFrom(p.id, p.name, p.subtitle)));
+    out.innerHTML = res.length ? res.map(p => `<div class="sb-person" onclick="sbStartWith('${p.id}')"><div class="online-member-name">${SB_ESC(p.name)}${p.username ? ' <span style="color:var(--muted-2);font-weight:400">@' + SB_ESC(p.username) + '</span>' : ''}</div></div>`).join('') : '<div class="sb-empty" style="padding:8px">Никого не нашли. Проверьте имя или @ник.</div>';
+  }, 250);
 }
-function sbStartWith(id, name, role) {
-  sbAddPeer(sbPeerFrom(id, name, role)); sbChatWith = id;
+function sbStartWith(id) {
+  sbChatWith = id;
   document.getElementById('chatSearch').value = ''; document.getElementById('chatFound').innerHTML = '';
   renderChat(); document.getElementById('chatInput').focus();
 }
-if (typeof BACKEND !== 'undefined' && BACKEND) { setTimeout(sbRefreshBlock, 1500); setInterval(sbRefreshBlock, 30000); }
+window.addEventListener('load', () => {
+  let tries = 0;
+  const t = setInterval(() => { tries++; if (!sbIsBackend() || sbOnlineMode() || tries > 20) { clearInterval(t); sbRefreshBlock(); } }, 500);
+  setInterval(sbRefreshBlock, 30000);
+});
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') ['scheduleModal', 'helpModal', 'chatModal'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('show'); });
   if (e.key === 'Enter' && !e.shiftKey && e.target && e.target.id === 'chatInput') { e.preventDefault(); sendChatMsg(); }
