@@ -142,6 +142,11 @@ async function sbFindProfiles(q, limit) {
   const clean = String(q || '').trim().replace(/^@/, '').replace(/[%_\\]/g, '');
   const sel = 'id,name,username,subtitle,created_at';
   try {
+    // 1) серверная функция из chat.sql — самый надёжный путь
+    const r = await sb.rpc('chat_find_profiles', { q: clean, lim: limit || 8 });
+    if (!r.error) return { rows: r.data || [] };
+    console.warn('chat_find_profiles недоступна, пробую public_profiles:', r.error.message);
+    // 2) запасной путь: публичное представление
     if (!clean) {
       const { data, error } = await sb.from('public_profiles').select(sel).order('created_at', { ascending: false }).limit(limit || 8);
       return error ? { rows: [], error } : { rows: data || [] };
@@ -151,7 +156,7 @@ async function sbFindProfiles(q, limit) {
       sb.from('public_profiles').select(sel).ilike('name', `%${clean}%`).limit(8)
     ]);
     const error = u.error || n.error; if (error) return { rows: [], error };
-    const m = new Map(); [...(u.data || []), ...(n.data || [])].forEach(r => m.set(r.id, r));
+    const m = new Map(); [...(u.data || []), ...(n.data || [])].forEach(x => m.set(x.id, x)); 
     return { rows: [...m.values()].slice(0, 8) };
   } catch (error) { return { rows: [], error }; }
 }
@@ -219,7 +224,7 @@ function sbSearchPeople(q) {
   if (!q) { out.innerHTML = ''; return; }
   sbSearchT = setTimeout(async () => {
     const { rows, error } = await sbFindProfiles(q);
-    if (error) { console.warn('Поиск профилей', error); out.innerHTML = '<div class="sb-empty" style="padding:8px">Поиск недоступен: выполните <b>supabase/profile-posts-migration.sql</b> в Supabase.</div>'; return; }
+    if (error) { console.warn('Поиск профилей', error); out.innerHTML = '<div class="sb-empty" style="padding:8px">Поиск недоступен: выполните <b>supabase/chat.sql</b> в Supabase → SQL Editor.</div>'; return; }
     const me = activeUserId(), res = rows.filter(p => p.id !== me);
     res.forEach(p => sbAddPeer(sbPeerFrom(p.id, p.name, p.subtitle)));
     out.innerHTML = res.length ? res.map(p => `<div class="sb-person" onclick="sbStartWith('${p.id}')"><div class="online-member-name">${SB_ESC(p.name)}${p.username ? ' <span style="color:var(--muted-2);font-weight:400">@' + SB_ESC(p.username) + '</span>' : ''}</div></div>`).join('') : '<div class="sb-empty" style="padding:8px">Никого не нашли. Проверьте имя или @ник.</div>';

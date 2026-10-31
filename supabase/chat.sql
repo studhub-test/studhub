@@ -34,3 +34,20 @@ revoke all on public.messages from anon, authenticated;
 grant select on public.messages to authenticated;
 grant insert (recipient_id, body) on public.messages to authenticated;
 grant delete on public.messages to authenticated;
+
+-- Поиск собеседников. Работает с правами владельца (security definer), поэтому не зависит от
+-- того, что видит представление public_profiles. Отдаёт только публичные поля, себя не возвращает.
+create or replace function public.chat_find_profiles(q text default '', lim integer default 8)
+returns table (id uuid, name text, username text, subtitle text)
+language sql stable security definer set search_path = public as $$
+  select p.id, p.name, p.username, p.subtitle
+  from public.profiles p
+  where p.id <> auth.uid()
+    and (btrim(coalesce(q, '')) = ''
+         or p.name ilike '%' || replace(replace(btrim(q), '%', ''), '_', '') || '%'
+         or p.username ilike '%' || replace(replace(btrim(q), '%', ''), '_', '') || '%')
+  order by p.created_at desc
+  limit least(greatest(coalesce(lim, 8), 1), 20)
+$$;
+revoke all on function public.chat_find_profiles(text, integer) from public, anon;
+grant execute on function public.chat_find_profiles(text, integer) to authenticated;
