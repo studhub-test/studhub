@@ -36,3 +36,13 @@
 
 .sb-chat-head b.sb-link { cursor: pointer; color: var(--accent); }
 .sb-chat-head b.sb-link:hover { text-decoration: underline; }
+
+/* пункты, которые на телефоне заменяют скрытую правую колонку */
+.sb-mobile-only { display: none !important; }
+@media (max-width: 900px) { .header-icon.sb-mobile-only { display: flex !important; } .nav-item.sb-mobile-only { display: flex !important; } .section-label.sb-mobile-only { display: block !important; } }
+@media (max-width: 600px) {
+  .sb-chat-side { display: block; overflow: visible; padding: 6px 8px 0; }
+  #chatPeople { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px; }
+  .sb-chat-side .sb-person { flex-shrink: 0; padding: 6px 10px; }
+  .sb-chat-main { min-height: 0; }
+}
